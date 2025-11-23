@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import '../CSS/ProfessorLogin.css'
 import  GetBack from '../components/getback.jsx'
-
+import ButtonRedirect from '../components/buttonredirect.jsx'
 export default function ProfessorLogin() {
 
   return (
@@ -26,7 +26,7 @@ export default function ProfessorLogin() {
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" required />
         <br />
-        <button type="Login" class="login-button">Login</button>
+        <ButtonRedirect to = "/homeprofessor" label ="loginProfessor" className = 'login-button'/>
       </form>
      <p2 class="ProfessorLogin-paragraph2">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit.
