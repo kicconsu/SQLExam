@@ -16,6 +16,7 @@ export default function HomePageprofessor() {
       <h2>
         Tus proyectos
       </h2>
+      <ButtonRedirect to = "/professorexam" label ="Crear Examen" className = 'create-exam-button'/>
 
       
         

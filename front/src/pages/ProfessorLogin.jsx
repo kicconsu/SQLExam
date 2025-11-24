@@ -19,7 +19,7 @@ export default function ProfessorLogin() {
       <p class="ProfessorLogin-paragraph">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit.
       </p>
-      <form action="http://localhost:3000/api/log-prof" method="post">
+      <form action="http://localhost:3000/api/loginf" method="post">
         <label for="E-mail">E-mail:</label>
         <input type="text" id="E-mail" name="E-mail" required />
         <br />
@@ -36,10 +36,3 @@ export default function ProfessorLogin() {
   )
 }
 
-export function ProfessorPOST() {
-    return (
-        <div>
-            <h2>Professor POST</h2>
-        </div>
-    )
-}   
