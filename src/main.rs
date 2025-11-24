@@ -26,6 +26,7 @@ async fn main(){
         .route("/api/login", post(log_prof))
         .route("/api/exams", get(gather_exams))
         .layer(CorsLayer::new()
+                .allow_headers(tower_http::cors::Any) //averigua como solo permitir ciertos headers
                 .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
                 .allow_methods([Method::GET, Method::POST]));
 
