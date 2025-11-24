@@ -1,38 +1,101 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import '../CSS/ProfessorLogin.css'
-import  GetBack from '../components/getback.jsx'
+import { useNavigate } from 'react-router-dom'
+import GetBack from '../components/getback.jsx'
 import ButtonRedirect from '../components/buttonredirect.jsx'
+
+
 export default function ProfessorLogin() {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: "",
+    password: ""
+  });
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const jsonData = {
+      email: formData.email,
+      password: formData.password
+    };
+
+    try {
+      const response = await fetch("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(jsonData)
+      });
+
+      // Capturar el status
+      setStatus(response.status);
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log("Login exitoso:", data);
+        console.log("Status:", response.status);
+        navigate('/homeprofessor');
+
+      } else {
+        setError(data.message || "Error en el login");
+        console.error("Error del servidor:", data);
+      }
+      
+    } catch (err) {
+      console.error("Error de red:", err);
+      setError("Error de conexión con el servidor");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <>
-    <head>
-      <title>Professor Login</title>
-    </head>
-    <body>
-      <h1 class="main-title">
-        SQL EXAM
-      </h1>
-      <h2 class="ProfessorLogin-title">
-        Professor Login
-      </h2>
-      <p class="ProfessorLogin-paragraph">
+      <h1 className="main-title">SQL EXAM</h1>
+
+      <h2 className="ProfessorLogin-title">Professor Login</h2>
+
+      <p className="ProfessorLogin-paragraph">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit.
       </p>
-      <form action="http://localhost:3000/api/loginf" method="post">
-        <label for="E-mail">E-mail:</label>
-        <input type="text" id="E-mail" name="E-mail" required />
-        <br />
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required />
-        <br />
-        <ButtonRedirect to = "/homeprofessor" label ="loginProfessor" className = 'login-button'/>
+ <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          placeholder="Email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          disabled={loading}
+        />
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          disabled={loading}
+        />
+
+        <button type="submit" disabled={loading}>
+          {loading ? "Cargando..." : "Log in"}
+        </button>
+
       </form>
-     <p2 class="ProfessorLogin-paragraph2">
+
+      {error && <p style={{color: 'red'}}>{error}</p>}
+      {status && <p>Status: {status}</p>}
+
+      <p className="ProfessorLogin-paragraph2">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-     </p2>
-    </body>
+      </p>
     </>
   )
 }
-
