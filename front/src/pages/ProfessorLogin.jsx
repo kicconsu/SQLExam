@@ -39,12 +39,22 @@ export default function ProfessorLogin() {
       setStatus(response.status);
       
       const data = await response.json();
-      
+      console.log("Respuesta del backend:", data);
+
+
       if (response.ok) {
         console.log("Login exitoso:", data);
         console.log("Status:", response.status);
-        navigate('/homeprofessor');
+  
+        // Guardar token y datos pro
+        localStorage.setItem("token", data.accessToken);
+        localStorage.setItem("refreshToken", data.reFreshToken);
+        localStorage.setItem("user", JSON.stringify(data.user));
 
+        console.log("Datos guardados en localStorage.");
+
+        navigate('/homeprofessor');
+      
       } else {
         setError(data.message || "Error en el login");
         console.error("Error del servidor:", data);
