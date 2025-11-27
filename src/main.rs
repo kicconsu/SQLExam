@@ -61,6 +61,7 @@ async fn log_user(Json(payload):Json<Value>) -> impl IntoResponse {
     send_res
 }
 
+// los campos del Body tienen q ser los mismos q salen en la documentacion de ROBLE.
 async fn reg_user(Json(payload):Json<Value>) -> impl IntoResponse {
     info!("\nPOST SQLExam/register detectado, credenciales:\n{:?}", &payload);
 
@@ -76,7 +77,7 @@ async fn reg_user(Json(payload):Json<Value>) -> impl IntoResponse {
     send_res
 }
 
-//Espera como parametros el nombre del examen y el nombre del profesor
+//Espera como parametro el nombre del profesor como 'profe',
 async fn gather_exams(Query(payload):Query<Vec<(String, String)>>, heads:HeaderMap) -> impl IntoResponse {
 
     let mut params:Vec<(String, String)> = [("tableName".to_string(), "Exams".to_string())].to_vec();
@@ -96,22 +97,57 @@ async fn gather_exams(Query(payload):Query<Vec<(String, String)>>, heads:HeaderM
     send_res
 }
 
-//un examen es: {profe, nombre_examen, db_asociada}
-async fn make_exam(heads:HeaderMap, Json(payload):Json<Value>) -> impl IntoResponse {
-    info!("\nPOST SQLExam/make_exam detectado, examen a crear:\n{:?}", &payload);
+//un examen es: {profe, nombre_examen, db_asociada}. toca sacar las preguntas del payload y mandarlo a otra tabla.
+//una pregunta es: {numero_pregunta, enunciado, consulta_esperada, nombre_examen, }
+//el formato de la peticion tiene q ser:
+/*
+    {
+        profe: ,
+        nombre_examen: ,
+        db_asociada: ,
+        preguntas: [
+            {datos pregunta #1, nombre_examen siendo el mismo siempre},
+            {datos pregunta #2,},
+            ...
+        ]
+    }
 
-    let body = json!({
+*/
+async fn make_exam(heads:HeaderMap, Json(payload):Json<Value>) -> impl IntoResponse {
+    //si el formato del cuerpo no es tal cual el esperado I Will Die
+    info!("\nPOST SQLExam/make_exam detectado, examen a crear:\n{:?}", &payload);
+    
+    let Some(preguntas) = payload.get("preguntas") else {
+        info!("ERROR: Examen sin preguntas.");
+        return build_str_res(500, "El examen enviado no tiene campo de preguntas.".to_string());
+    };
+
+    let exam_body = json!({
         "tableName":"Exams",
-        "records": payload
+        "records": [{
+            "profe": payload["profe"],
+            "nombre_examen": payload["nombre_examen"],
+            "db_asociada": payload["db_asociada"]
+        }]
+    });
+
+    let quest_body = json!({
+        "tableName":"Preguntas",
+        "records": preguntas
     });
 
     let acc_key:String = token_from_heads(heads);
 
-    let response = 
-        post_to("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/insert", body, acc_key)
+    let res_exam = 
+        post_to("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/insert", exam_body, acc_key.clone())
         .await;
-    let send_res = build_ax_response(response).await;
+    let res_ques =post_to("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/insert", quest_body, acc_key)
+        .await;
 
-    info!("STATUS devuelto: {:?}", &send_res.status());
-    send_res
+    //ni idea de q hacer con las dos responses lol supongo que podría intentar armarla a mano pero por ahora se queda asi
+    let send_exam = build_ax_response(res_exam).await;
+    let send_ques = build_ax_response(res_ques).await;
+
+    info!("\nSTATUS de Examenes devuelto: {:?}\nSTATUS de Preguntas devuelto: {:?}", &send_exam.status(), &send_ques.status());
+    send_ques
 }
