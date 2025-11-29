@@ -128,33 +128,11 @@ pub async fn make_exam(State(admin_pool):State<PgPool>, heads:HeaderMap, mut mul
         _ => return build_str_res(500, "Examen mal formateado.\n¿Faltará algún campo?".to_string())
     };
 
-    info!("\nPOST SQLExam/make_exam detectado, examen a crear:\n{:?}", &exam);
-
-    //ya con los datos extraidos se monta la db del examen a posgres y se montan los datos necesarios a roble
+    //variables para el manejo de archivos
     let db_name = &exam.db_asociada;
     let file_path = format!("file_uploads/{}", db_name);
 
-    // para restaurar la DB del archivo .sql, primero se crea la base de datos que vaya a sostener las tablas
-    sqlx::query(&format!("CREATE DATABASE {}", db_name))
-        .execute(&admin_pool)
-        .await
-        .unwrap();//me gustaria propagar el error d este chocoro pero aghhhhhhhhhhhffffffffffff
-
-    //con la db creada, se ejecuta un comando de shell que mande el .sql directamente a la base de datos recien creada
-    let db_url = env::var("DB_URL")
-        .expect("No se encontró la variable de DB_URL definida en el .env");
-    let conn = format!("{}/{}", db_url, db_name);
-    Command::new("psql")
-        .arg("-d")
-        .arg(&conn)
-        .arg("-f")
-        .arg(&file_path)
-        .status()
-        .await
-        .expect("Algo salió mal al tratar de llamar psql.");
-
-    //limpieza justo despues de armar la tabla. con esto ya la base de datos para el examen se encuentra en el servidor.
-    tokio::fs::remove_file(file_path).await.unwrap();
+    info!("\nPOST SQLExam/make_exam detectado, examen a crear:\n{:?}", &exam);
 
     //Separacion de datos de examen y preguntas para mandar a sus respectivas tablas
     let exam_body = json!({
@@ -188,5 +166,33 @@ pub async fn make_exam(State(admin_pool):State<PgPool>, heads:HeaderMap, mut mul
     let send_ques = build_ax_response(res_ques).await;
 
     info!("\nSTATUS de Examenes devuelto: {:?}\nSTATUS de Preguntas devuelto: {:?}", &send_exam.status(), &send_ques.status());
+
+    //Solo hablar con Posgres si la conversación con Roble salió bien
+    if &send_exam.status().is_success() & &send_ques.status().is_success() {
+        //ya con los datos en roble, se monta la db del examen a posgres
+
+        // para restaurar la DB del archivo .sql, primero se crea la base de datos que vaya a sostener las tablas
+        sqlx::query(&format!("CREATE DATABASE {}", db_name))
+            .execute(&admin_pool)
+            .await
+            .unwrap();//me gustaria propagar el error d este chocoro pero aghhhhhhhhhhhffffffffffff
+
+        //con la db creada, se ejecuta un comando de shell que mande el .sql directamente a la base de datos recien creada
+        let db_url = env::var("DB_URL")
+            .expect("No se encontró la variable de DB_URL definida en el .env");
+        let conn = format!("{}/{}", db_url, db_name);
+        Command::new("psql")
+            .arg("-d")
+            .arg(&conn)
+            .arg("-f")
+            .arg(&file_path)
+            .status()
+            .await
+            .expect("Algo salió mal al tratar de llamar psql.");
+    }
+
+    //se limpia la carpeta de file_uploads al finalizar la ejecución del handler
+    tokio::fs::remove_file(file_path).await.unwrap();
+
     send_ques
 }
