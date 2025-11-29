@@ -60,7 +60,7 @@ export default function ProfessorExam() {
     }
   } 
   async function handleSaveExam(e) {
-    const file = e.target.files[0];
+    
     // Validaciones
     if (!projectName.trim()) {
       alert('Por favor ingresa el nombre del examen');
@@ -100,7 +100,7 @@ export default function ProfessorExam() {
       const payload = {
         profe: user?.name, 
         nombre_examen: projectName,
-        dbAsociada: file.name,
+        dbAsociada: dbAsociada.name,
         preguntas: preguntasFormateadas
       };
 
