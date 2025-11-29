@@ -108,8 +108,7 @@ export default function ProfessorExam() {
       const response = await fetch('http://localhost:3000/api/make-exam', {
         method: 'POST',
         headers: {
-          
-          'Authorization': `Bearer ${token}` 
+          'Authorization': `Bearer ${token}`,
         },
         body: formData
       });

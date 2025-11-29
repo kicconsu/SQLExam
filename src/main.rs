@@ -1,8 +1,9 @@
+use std::collections::HashMap;
 use axum::{
-    http::{HeaderValue, Method, header::HeaderMap}, //Para CORS y armar Responses
-    routing::{get, post},
-    extract::{Query, Json}, //Extractores de peticiones
-    response::IntoResponse // Para retornar Responses de las bases de datos
+    extract::{DefaultBodyLimit, Json, Multipart, Query},
+    http::{HeaderValue, Method, header::HeaderMap},
+    response::IntoResponse,
+    routing::{get, post} // Para retornar Responses de las bases de datos
 };
 
 use tracing::info; // logging
@@ -14,7 +15,8 @@ use tower_http::cors::CorsLayer; // Para comunicar front y back
 
 mod aux_fns;
 use crate::aux_fns::*;
-
+mod models;
+use crate::models::ExamData;
 
 #[tokio::main]
 async fn main(){
@@ -26,11 +28,11 @@ async fn main(){
         .route("/api/login", post(log_user))
         .route("/api/register", post(reg_user))
         .route("/api/exams", get(gather_exams))
-        .route("/api/make-exam", post(make_exam))
+        .route("/api/make-exam", post(make_exam).layer(DefaultBodyLimit::max(10240)))
         .layer(CorsLayer::new()
                 .allow_headers(tower_http::cors::Any) //averigua como solo permitir ciertos headers
                 .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
-                .allow_methods([Method::GET, Method::POST]));
+                .allow_methods([Method::GET, Method::POST, Method::OPTIONS]));
 
     let addr = "0.0.0.0:3000";
     let listener = tokio::net::TcpListener::bind(addr)
@@ -97,43 +99,48 @@ async fn gather_exams(Query(payload):Query<Vec<(String, String)>>, heads:HeaderM
     send_res
 }
 
-//un examen es: {profe, nombre_examen, db_asociada}. toca sacar las preguntas del payload y mandarlo a otra tabla.
-//una pregunta es: {numero_pregunta, enunciado, consulta_esperada, nombre_examen, }
-//el formato de la peticion tiene q ser:
 /*
+    un examen es: {profe, nombre_examen, db_asociada}. toca sacar las preguntas del payload y mandarlo a otra tabla.
+    una pregunta es: {numero_pregunta, enunciado, consulta_esperada, nombre_examen, }
+    el formato de la peticion tiene q ser:
+
     {
-        profe: ,
-        nombre_examen: ,
-        db_asociada: ,
-        preguntas: [
-            {datos pregunta #1, nombre_examen siendo el mismo siempre},
-            {datos pregunta #2,},
-            ...
-        ]
+        "archivo_db": dump.sql,
+        "exam_data": {examen}
     }
 
 */
-async fn make_exam(heads:HeaderMap, Json(payload):Json<Value>) -> impl IntoResponse {
-    //si el formato del cuerpo no es tal cual el esperado I Will Die
-    info!("\nPOST SQLExam/make_exam detectado, examen a crear:\n{:?}", &payload);
-    
-    let Some(preguntas) = payload.get("preguntas") else {
-        info!("ERROR: Examen sin preguntas.");
-        return build_str_res(500, "El examen enviado no tiene campo de preguntas.".to_string());
+async fn make_exam(heads:HeaderMap, mut multipart: Multipart) -> impl IntoResponse {
+
+    //La lectura de un multipart es un proceso iterativo hasta terminar con los campos.
+    let mut parts:HashMap<String, String> = HashMap::new();
+
+    while let Some(field) = multipart.next_field().await.unwrap() {
+        let name = field.name().unwrap().to_string();
+        parts.insert(name, field.text().await.unwrap());
+    }
+
+    //Extraccion de los datos del examen de manera segura con un pattern match
+    let exam:ExamData = match serde_json::from_str(&parts["exam_data"]) {
+        Ok(v) => v,
+        _ => return build_str_res(500, "Examen mal formateado.\n¿Faltará algún campo?".to_string())
     };
 
+    info!("\nPOST SQLExam/make_exam detectado, examen a crear:\n{:?}", &exam);
+
+    //Separacion de datos de examen y preguntas para mandar a sus respectivas tablas
     let exam_body = json!({
         "tableName":"Exams",
         "records": [{
-            "profe": payload["profe"],
-            "nombre_examen": payload["nombre_examen"],
-            "db_asociada": payload["db_asociada"]
+            "profe":exam.profe,
+            "nombre_examen":exam.nombre_examen,
+            "db_asociada":exam.db_asociada
         }]
     });
 
     let quest_body = json!({
         "tableName":"Preguntas",
-        "records": preguntas
+        "records": exam.preguntas
     });
 
     let acc_key:String = token_from_heads(heads);
