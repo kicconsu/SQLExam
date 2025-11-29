@@ -1,19 +1,5 @@
-import { useEffect, useState } from 'react'
-import './App.css'
-
-function App() {
-
-  return (
-    <>
-      <h1>
-        <GetBack/>
-      </h1>
-    </>
-  )
-}
-export default App;
-
-function GetBack() {
+import { useState, useEffect } from "react";
+export default function GetBack() {
    // Señal para sostener los datos de la respuesta
   const [data, setData] = useState(null);
   // Señal para decidir que retornar mientras se espera una respuesta.
