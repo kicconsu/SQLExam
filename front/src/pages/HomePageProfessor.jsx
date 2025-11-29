@@ -146,4 +146,4 @@ async function cargarExamenes() {
   
     </div>
     </div>
-  }
+  )}
