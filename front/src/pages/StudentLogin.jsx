@@ -5,18 +5,14 @@ import  GetBack from '../components/getback.jsx'
 export default function StudentLogin() {
 
   return (
-    <>
-    <head>
-      <title>Student Login</title>
-    </head>
-    <body>
-      <h1 class="main-title">
+    <div className='login-container'>
+      <h1 className="main-title">
         SQL EXAM
       </h1>
-      <h2 class="StudentLogin-title">
+      <h2 className="StudentLogin-title">
         Student Login
       </h2>
-      <p class="StudentLogin-paragraph">
+      <p className="StudentLogin-paragraph">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit.
       </p>
       <form action="http://localhost:3000/api/log-stud" method="post">
@@ -26,12 +22,11 @@ export default function StudentLogin() {
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" required />
         <br />
-        <button type="Login" class="login-button">Login</button>
+        <button type="Login" className="login-button">Login</button>
       </form>
-     <p2 class="StudentLogin-paragraph2">
+     <p2 className="StudentLogin-paragraph2">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit.
      </p2>
-    </body>
-    </>
+    </div>
   )
 }

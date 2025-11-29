@@ -30,23 +30,24 @@ export default function HomePageprofessor() {
   }, [navigate]);
 
   return (
-    <>
+    <div className='home-container'>
       <h1 className="main-title">
         Panel de control
       </h1>
 
       {profe && (
-        <h2>
+        <p className='welcome-text'>
           Bienvenido, {profe.nombre || profe.name || profe.email || "Profesor"}
-        </h2>
+        </p>
       )}
 
-      <h3>Tus proyectos</h3>
-
+      <p className='projects-title'>Tus proyectos</p>
+      <div className='home-actions'>
       <ButtonRedirect 
         to="/professorexam" 
         label="Crear Examen" 
         className="create-exam-button"
       />
-    </>
+      </div>
+    </div>
   )}

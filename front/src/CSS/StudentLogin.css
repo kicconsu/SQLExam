@@ -1,0 +1,13 @@
+.login-container {
+  max-width: 380px;
+  width: 90%;
+  margin: 70px auto;
+  padding: 30px 25px;
+  background: var(--primary);
+  color: var(--secondary);
+  border: 2px solid var(--secondary);
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.15);
+  text-align: center;
+  animation: fadeIn 0.6s ease;
+}

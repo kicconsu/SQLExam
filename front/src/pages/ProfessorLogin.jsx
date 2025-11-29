@@ -69,7 +69,7 @@ export default function ProfessorLogin() {
   }
 
   return (
-    <>
+    <div className='login-container'>
       <h1 className="main-title">SQL EXAM</h1>
 
       <h2 className="ProfessorLogin-title">Professor Login</h2>
@@ -106,6 +106,6 @@ export default function ProfessorLogin() {
       <p className="ProfessorLogin-paragraph2">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit.
       </p>
-    </>
+    </div>
   )
 }

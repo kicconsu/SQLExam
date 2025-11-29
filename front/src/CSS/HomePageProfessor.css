@@ -1,0 +1,96 @@
+:root {
+  --box-shadow: 2px 2px;
+  /* Spacing */
+  --element-spacing: 8px;
+  
+  --sys-color-white: #FFFFFF;
+  --sys-color-black: #000000;
+  --sys-color-grey: #A5A5A5;
+  --sys-color-darkgrey: #B6B7B8;
+
+  --primary: var(--sys-color-white);
+  --secondary: var(--sys-color-black);
+  --tertiary: var(--sys-color-grey);
+  --disabled: var(--sys-color-darkgrey);
+}
+
+/* Contenedor principal del panel */
+.home-container {
+  max-width: 900px;
+  margin: 80px auto;
+  padding: 40px 32px 80px;
+  background: var(--primary);
+  color: var(--secondary);
+  border-radius: 18px;
+  border: 1px solid #e3e3e3;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.08);
+  text-align: center;
+  animation: fadeIn 0.5s ease;
+}
+
+/* Animación suave al entrar */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+.main-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 40px;
+  margin-bottom: 20px;
+  color: var(--secondary);
+}
+
+/* Texto de bienvenida */
+.welcome-text {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0 0 28px;
+}
+
+/* Subtítulo “Tus proyectos” */
+.projects-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--tertiary);
+  margin: 0 0 24px;
+}
+
+/*contenedor del boton*/
+.home-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+/* Botón de “Crear Examen” */
+.create-exam-button {
+  padding: 12px 34px;
+  background-color: var(--secondary);
+  color: var(--primary);
+  border: none;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+  transition: transform 0.15s ease, 
+              box-shadow 0.15s ease,
+              background-color 0.15s ease;
+}
+
+/* Hover: se levanta un poquito */
+.create-exam-button:hover {
+  background-color: #000000;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+}
+
+/* Click: se “hunde” un poco */
+.create-exam-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+}
