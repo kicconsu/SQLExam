@@ -7,7 +7,7 @@ export default function ButtonRedirect({ to, label, className }) {
         navigate(to);
     }
     return (
-        <button type="button" onClick={handleClick} class={className}>
+        <button type="button" onClick={handleClick} className={className}>
             {label}
         </button>
          
