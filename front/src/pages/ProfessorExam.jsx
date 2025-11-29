@@ -100,7 +100,7 @@ export default function ProfessorExam() {
       const payload = {
         profe: user?.name, 
         nombre_examen: projectName,
-        dbAsociada: dbAsociada.name,
+        db_asociada: dbAsociada.name,
         preguntas: preguntasFormateadas
       };
 

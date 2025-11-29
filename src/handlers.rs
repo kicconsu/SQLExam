@@ -3,7 +3,7 @@ use std::env;
 
 use axum::{
     extract::{Json, Multipart, Query, State}, // Extractores: con esto accedes a las partes de las peticiones
-    http::{header::HeaderMap}, // Para extraer los headers (access_tokens y asi)
+    http::{header::HeaderMap, StatusCode}, // Para extraer los headers (access_tokens y asi)
     response::IntoResponse, // toda response mandada al front tiene q implementar esto
 };
 
@@ -14,10 +14,10 @@ use tokio::process::Command; // para restaurar la base de datos con un Shell
 
 use serde_json::{Value, json}; // Para manejar JSON arbitrario
 
-use tracing::info;
+use tracing::{info, error};
 
 use crate::aux_fns::*; // constructores de responses, constructores de peticiones...
-use crate::models::ExamData; // tipado fuerte para los examenes para facilitar validaciones
+use crate::models::{ExamData, ExamMakerResponse}; // tipado fuerte para los examenes para facilitar validaciones
 
 
 //Contraseña de test2: aa22A-----
@@ -87,9 +87,13 @@ pub async fn gather_exams(Query(payload):Query<Vec<(String, String)>>, heads:Hea
 */
 //POST api/make-exam
 pub async fn make_exam(State(admin_pool):State<PgPool>, heads:HeaderMap, mut multipart: Multipart) -> impl IntoResponse {
+    info!("POST api/make-exam detectado...");
 
     //diccionario para manejar los campos que no son archivos
     let mut parts:HashMap<String, String> = HashMap::new();
+
+    //respuesta que marca cuales etapas fueron exitosas y tal
+    let mut response_body = ExamMakerResponse::default();
 
     //La lectura de un multipart es un proceso iterativo hasta terminar con los campos.
     while let Some(mut field) = multipart.next_field().await.unwrap() {
@@ -111,13 +115,14 @@ pub async fn make_exam(State(admin_pool):State<PgPool>, heads:HeaderMap, mut mul
                 while let Some(chunk) = field.chunk().await.unwrap() {
                     file.write_all(&chunk).await.unwrap();
                 }
-
-                info!(".sql guardado en la ruta: {}", &save_path);
+                info!("archivo .sql guardado en la ruta: {}", &save_path);
+                response_body.file_write = true;
             },
             None => {
                 //Si el campo no es un archivo, se añade a un diccionario de datos para ser manejado luego
                 let name = field.name().unwrap().to_string();
-                parts.insert(name, field.text().await.unwrap());
+                parts.insert(name.clone(), field.text().await.unwrap());
+                info!("informacion del campo '{}' guardada", name);
             }
         }
     }
@@ -125,14 +130,19 @@ pub async fn make_exam(State(admin_pool):State<PgPool>, heads:HeaderMap, mut mul
     //Extraccion de los datos del examen de manera segura con un pattern match
     let exam:ExamData = match serde_json::from_str(&parts["exam_data"]) {
         Ok(v) => v,
-        _ => return build_str_res(500, "Examen mal formateado.\n¿Faltará algún campo?".to_string())
+        _ => return {
+            error!("Hay algo mal con el formato del exam_data. No falta algún campo?");
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_body))
+        }
     };
+
+    response_body.exam_data = true;
+
+    info!("info del examen cargada: {:?}", &exam);
 
     //variables para el manejo de archivos
     let db_name = &exam.db_asociada;
     let file_path = format!("file_uploads/{}", db_name);
-
-    info!("\nPOST SQLExam/make_exam detectado, examen a crear:\n{:?}", &exam);
 
     //Separacion de datos de examen y preguntas para mandar a sus respectivas tablas
     let exam_body = json!({
@@ -160,39 +170,50 @@ pub async fn make_exam(State(admin_pool):State<PgPool>, heads:HeaderMap, mut mul
         post_to("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/insert", quest_body, acc_key)
         .await;
 
-    //ni idea de q hacer con las dos responses lol supongo que podría intentar armarla a mano pero por ahora se queda asi
-    //ademas si una falla y la otra no lo ideal sería que se limpie la tabla q queda con los datos huerfanos. TODO supongo
-    let send_exam = build_ax_response(res_exam).await;
-    let send_ques = build_ax_response(res_ques).await;
+    //si una falla y la otra no lo ideal sería que se limpie la tabla q queda con los datos huerfanos. TODO supongo
+    if res_exam.status().is_success() {
+        response_body.exam_table_insert = true;
+    }
+    if res_exam.status().is_success() {
+        response_body.questions_table_insert = true;
+    }    
 
-    info!("\nSTATUS de Examenes devuelto: {:?}\nSTATUS de Preguntas devuelto: {:?}", &send_exam.status(), &send_ques.status());
-
+    info!("\nSTATUS de Examenes devuelto: {:?}\nSTATUS de Preguntas devuelto: {:?}", &res_exam.status(), &res_ques.status());
+    
     //Solo hablar con Posgres si la conversación con Roble salió bien
-    if &send_exam.status().is_success() & &send_ques.status().is_success() {
+    if &response_body.exam_table_insert & &response_body.questions_table_insert {
         //ya con los datos en roble, se monta la db del examen a posgres
 
         // para restaurar la DB del archivo .sql, primero se crea la base de datos que vaya a sostener las tablas
-        sqlx::query(&format!("CREATE DATABASE {}", db_name))
+        sqlx::query(&format!("CREATE DATABASE {}", db_name.strip_suffix(".sql").unwrap()))
             .execute(&admin_pool)
             .await
-            .unwrap();//me gustaria propagar el error d este chocoro pero aghhhhhhhhhhhffffffffffff
+            .unwrap_or_default();
+        //^^^^^^^ el deber ser es verificar que la DB ya exista o no antes de crearla. TODO si quieres ser buen ciudadano
+
+        info!("------- DATABASE creada -------");
 
         //con la db creada, se ejecuta un comando de shell que mande el .sql directamente a la base de datos recien creada
         let db_url = env::var("DB_URL")
             .expect("No se encontró la variable de DB_URL definida en el .env");
-        let conn = format!("{}/{}", db_url, db_name);
-        Command::new("psql")
+        let conn = format!("{}/{}", db_url, db_name.strip_suffix(".sql").unwrap());
+        let shell = Command::new("psql")
             .arg("-d")
             .arg(&conn)
             .arg("-f")
             .arg(&file_path)
             .status()
-            .await
-            .expect("Algo salió mal al tratar de llamar psql.");
+            .await;
+
+        match shell {
+            Ok(_e) => response_body.posgres_create = true,
+            _ => response_body.posgres_create = false
+        }
     }
 
     //se limpia la carpeta de file_uploads al finalizar la ejecución del handler
     tokio::fs::remove_file(file_path).await.unwrap();
 
-    send_ques
+
+    (StatusCode::MULTI_STATUS, Json(response_body))
 }

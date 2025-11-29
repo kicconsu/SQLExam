@@ -14,3 +14,12 @@ pub struct Pregunta{
     consulta_esperada: String,
     nombre_examen: String
 }
+
+#[derive(Serialize, Default)]
+pub struct ExamMakerResponse {
+    pub file_write: bool,
+    pub exam_data: bool,
+    pub exam_table_insert: bool,
+    pub questions_table_insert: bool,
+    pub posgres_create: bool
+}
