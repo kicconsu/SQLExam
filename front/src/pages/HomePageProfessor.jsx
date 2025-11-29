@@ -108,15 +108,15 @@ async function cargarExamenes() {
         <p>No tienes exámenes creados todavía</p>
       )}
 
-      
-      {/* 🎯 BOTONES DE LOS EXÁMENES */}
+      {/* NO HE PROBADO ESTO  */}
+      {/*  BOTONES DE LOS EXÁMENES */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         {examenes.map((examen) => (
           <div 
             key={examen.id} 
             
           >
-            {/* BOTÓN PRINCIPAL DEL EXAMEN */}
+            {/* BOTon PRINCIPAL DEL EXAMEN */}
             <button
               onClick={() => navigate(`/editar-examen/${examen.id}`)}
               
@@ -128,7 +128,7 @@ async function cargarExamenes() {
               </div>
             </button>
             
-            {/* Botón de eliminar */}
+            {/* ELIOMINAR */}
             <button 
               onClick={() => handleDeleteExam(examen.id, examen.nombre_examen)}
               

@@ -42,15 +42,31 @@ export default function ProfessorExam() {
 }
   function deleteItem(index) {
     setList(list.filter((_, i) => i !== index));
-}  
+} 
+ function handleFileChange(e) {
+    const file = e.target.files[0];
+    
+    if (file) {
+      // Validar que sea un archivo .bak
+      if (!file.name.endsWith('.sql')) {
+        alert('Por favor selecciona un archivo .sql');
+        e.target.value = ''; // Limpiar el input
+        return;
+      }
+      
+      setDbAsociada(file);
+      setDbFileName(file.name);
+      console.log(' Archivo seleccionado:', file.name);
+    }
+  } 
   async function handleSaveExam() {
     // Validaciones
     if (!projectName.trim()) {
       alert('Por favor ingresa el nombre del examen');
       return;
     }
-    if (!dbAsociada && !isEditMode) {
-      alert('Por favor selecciona un archivo .bak');
+    if (!dbAsociada ) {
+      alert('Por favor selecciona un archivo .sql');
       return;
     }
 
@@ -81,14 +97,13 @@ export default function ProfessorExam() {
 
       
       const payload = {
-        profe: profe.name , 
+        profe: user?.name, 
         nombre_examen: projectName,
-        db_asociada: dbAsociada,
         preguntas: preguntasFormateadas
       };
 
       
-      formData.append('exam_data', JSON.stringify(examData));
+      formData.append('exam_data', JSON.stringify(payload));
       // Ennvio al backend
       const response = await fetch('http://localhost:3000/api/make-exam', {
         method: 'POST',
@@ -96,7 +111,7 @@ export default function ProfessorExam() {
           
           'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify(payload)
+        body: formData
       });
 
       const data = await response.json();
@@ -130,16 +145,40 @@ return (
     <>
       <h1 className="main-title">New Exam</h1>
       
-     
+      
       <form onSubmit={(e) => e.preventDefault()}>
         <input 
           className="Project-Name"
           placeholder="Nombre del examen"
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
+          disabled={loading}
         />
         
-    
+        {/* INPUTARCHIVO */}
+        
+          <label 
+            htmlFor="file-upload" 
+            
+          >
+            📁 Seleccionar archivo .sql
+          </label>
+          
+          <input 
+            id="file-upload"
+            type="file"
+            accept=".sql"
+            onChange={handleFileChange}
+            disabled={loading}
+            
+          />
+          
+          {dbFileName && (
+            <div style={{ marginTop: '10px' }}>
+              <strong>Archivo seleccionado:</strong> {dbFileName}
+            </div>
+          )}
+        
       </form>
       
       
