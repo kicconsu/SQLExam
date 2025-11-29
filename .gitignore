@@ -1,4 +1,6 @@
 /target
+/file_uploads
+*.env
 
 # Logs
 logs
