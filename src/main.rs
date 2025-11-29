@@ -1,39 +1,51 @@
-use std::collections::HashMap;
 use axum::{
-    extract::{DefaultBodyLimit, Json, Multipart, Query},
-    http::{HeaderValue, Method, header::HeaderMap},
-    response::IntoResponse,
+    extract::{DefaultBodyLimit},
+    http::{HeaderValue, Method},
     routing::{get, post} // Para retornar Responses de las bases de datos
 };
 
 use tracing::info; // logging
 use tracing_subscriber::FmtSubscriber;
 
-use serde_json::{Value, json}; // Para manejar JSON arbitrario
-use tower_http::cors::CorsLayer; // Para comunicar front y back
-//todo: tower_http::services::ServeDir para que Axum sirva la app... (for production)
+use tower_http::cors::CorsLayer; // Para permitir la llegada de las peticiones del front
+//TODO: tower_http::services::ServeDir para que Axum sirva la app... (for production)
+
+use dotenv::dotenv;
+use std::env;
+use sqlx::{PgPool};
 
 mod aux_fns;
-use crate::aux_fns::*;
 mod models;
-use crate::models::ExamData;
+mod handlers;
+
+use crate::handlers::*;
 
 #[tokio::main]
-async fn main(){
-    //Setup para poder usar la macro info!
+async fn main() -> Result<(), sqlx::Error>{
+     //Setup para poder usar la macro info!
     tracing::subscriber::set_global_default(FmtSubscriber::default()).unwrap();
+
+    //Setup de la conexión con posgreSQL
+    dotenv().ok(); //En el .env se guardan variables como la direccion a la db_admin
+
+    let admin_db_url = env::var("ADMIN_DB_URL")
+        .expect("No se encontró ADMIN_DB_URL en el .env");
+    let admin_pool = PgPool::connect(&admin_db_url).await?;
+
+    info!("Backend conectado con posgreSQL!");
 
     //App de axum con sus rutas y la capa de CORS para poder manejar las queries que lleguen del front
     let app = axum::Router::new()
+        //Cada ruta tiene su handler definido en handlers.rs
         .route("/api/login", post(log_user))
         .route("/api/register", post(reg_user))
         .route("/api/exams", get(gather_exams))
         .route("/api/make-exam", post(make_exam).layer(DefaultBodyLimit::max(10240)))
+        .with_state(admin_pool)
         .layer(CorsLayer::new()
                 .allow_headers(tower_http::cors::Any) //averigua como solo permitir ciertos headers
                 .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
                 .allow_methods([Method::GET, Method::POST, Method::OPTIONS]));
-
     let addr = "0.0.0.0:3000";
     let listener = tokio::net::TcpListener::bind(addr)
         .await
@@ -44,117 +56,6 @@ async fn main(){
     axum::serve(listener, app)
         .await
         .unwrap();
-}
 
-//Contraseña de test2: aa22A-----
-//POST api/login: tratar de logear usuario en ROBLE
-async fn log_user(Json(payload):Json<Value>) -> impl IntoResponse {
-    info!("\nPOST SQLExam/login detectado, credenciales:\n{:?}", &payload);
-
-    let response = 
-        post_to("https://roble-api.openlab.uninorte.edu.co/auth/sqlexam_b05c8db1d5/login", payload, "".to_string())
-        .await;
-
-    let send_res = build_ax_response(response).await;
-
-    info!("STATUS devuelto: {:?}", &send_res.status());
-    //no se como loggear el texto del cuerpo lol
-    //info!("respuesta de ROBLE:\nStatus: {:?}\nCuerpo: {:?}", &send_res.status(), &send_res.body());
-    send_res
-}
-
-// los campos del Body tienen q ser los mismos q salen en la documentacion de ROBLE.
-async fn reg_user(Json(payload):Json<Value>) -> impl IntoResponse {
-    info!("\nPOST SQLExam/register detectado, credenciales:\n{:?}", &payload);
-
-    let response = 
-        post_to("https://roble-api.openlab.uninorte.edu.co/auth/sqlexam_b05c8db1d5/signup-direct", payload, "".to_string())
-        .await;
-
-    let send_res = build_ax_response(response).await;
-
-    info!("STATUS devuelto: {:?}", &send_res.status());
-    //no se como loggear el texto del cuerpo lol
-    //info!("respuesta de ROBLE:\nStatus: {:?}\nCuerpo: {:?}", &send_res.status(), &send_res.body());
-    send_res
-}
-
-//Espera como parametro el nombre del profesor como 'profe',
-async fn gather_exams(Query(payload):Query<Vec<(String, String)>>, heads:HeaderMap) -> impl IntoResponse {
-
-    let mut params:Vec<(String, String)> = [("tableName".to_string(), "Exams".to_string())].to_vec();
-    params.append(&mut payload.clone());
-
-    let acc_key:String = token_from_heads(heads);
-
-    info!("\nGET SQLExam/exams detectado,\nparametros: {:?}\naccess_token: {:?}", &params, &acc_key);
-
-    let response =
-        get_queried("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/read", params, acc_key)
-        .await;
-    let send_res = build_ax_response(response).await;
-
-    info!("STATUS devuelto: {:?}", &send_res.status());
-
-    send_res
-}
-
-/*
-    un examen es: {profe, nombre_examen, db_asociada}. toca sacar las preguntas del payload y mandarlo a otra tabla.
-    una pregunta es: {numero_pregunta, enunciado, consulta_esperada, nombre_examen, }
-    el formato de la peticion tiene q ser:
-
-    {
-        "archivo_db": dump.sql,
-        "exam_data": {examen}
-    }
-
-*/
-async fn make_exam(heads:HeaderMap, mut multipart: Multipart) -> impl IntoResponse {
-
-    //La lectura de un multipart es un proceso iterativo hasta terminar con los campos.
-    let mut parts:HashMap<String, String> = HashMap::new();
-
-    while let Some(field) = multipart.next_field().await.unwrap() {
-        let name = field.name().unwrap().to_string();
-        parts.insert(name, field.text().await.unwrap());
-    }
-
-    //Extraccion de los datos del examen de manera segura con un pattern match
-    let exam:ExamData = match serde_json::from_str(&parts["exam_data"]) {
-        Ok(v) => v,
-        _ => return build_str_res(500, "Examen mal formateado.\n¿Faltará algún campo?".to_string())
-    };
-
-    info!("\nPOST SQLExam/make_exam detectado, examen a crear:\n{:?}", &exam);
-
-    //Separacion de datos de examen y preguntas para mandar a sus respectivas tablas
-    let exam_body = json!({
-        "tableName":"Exams",
-        "records": [{
-            "profe":exam.profe,
-            "nombre_examen":exam.nombre_examen,
-            "db_asociada":exam.db_asociada
-        }]
-    });
-
-    let quest_body = json!({
-        "tableName":"Preguntas",
-        "records": exam.preguntas
-    });
-
-    let acc_key:String = token_from_heads(heads);
-
-    let res_exam = 
-        post_to("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/insert", exam_body, acc_key.clone())
-        .await;
-    let res_ques =post_to("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/insert", quest_body, acc_key)
-        .await;
-
-    //ni idea de q hacer con las dos responses lol supongo que podría intentar armarla a mano pero por ahora se queda asi
-    let send_exam = build_ax_response(res_exam).await;
-    let send_ques = build_ax_response(res_ques).await;
-
-    info!("\nSTATUS de Examenes devuelto: {:?}\nSTATUS de Preguntas devuelto: {:?}", &send_exam.status(), &send_ques.status());
-    send_ques
+    Ok(())
 }

@@ -2,6 +2,15 @@ use axum::http::{HeaderMap, Response};
 use reqwest::{Body, StatusCode};
 use serde_json::Value;
 
+pub fn token_from_heads(heads:HeaderMap) -> String {
+    let acc_key;
+    if heads.contains_key("Authorization") {
+        acc_key = heads.get("Authorization").unwrap().to_str().unwrap();
+    } else {
+        acc_key = ""
+    }
+    acc_key.to_string()
+}
 
 pub async fn post_to(url:&str, body:Value, acc_key:String) -> reqwest::Response {
     let client = reqwest::Client::new();
@@ -42,14 +51,4 @@ pub fn build_str_res(code:u16, er_msg:String) -> Response<Body> {
         .status(StatusCode::from_u16(code).unwrap())
         .body(Body::from(er_msg))
         .unwrap()
-}
-
-pub fn token_from_heads(heads:HeaderMap) -> String {
-    let acc_key;
-    if heads.contains_key("Authorization") {
-        acc_key = heads.get("Authorization").unwrap().to_str().unwrap();
-    } else {
-        acc_key = ""
-    }
-    acc_key.to_string()
 }
