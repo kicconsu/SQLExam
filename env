@@ -1,0 +1,2 @@
+ADMIN_DB_URL=postgres://postgres:2341@localhost:5432/postgres
+DB_URL=postgres://postgres:2341@localhost:5432

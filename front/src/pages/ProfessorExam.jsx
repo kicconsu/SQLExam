@@ -111,18 +111,19 @@ export default function ProfessorExam() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+          
         },
         body: formData
       });
 
-      const data = await response.json();
+      const data = await response.text();
 
       if (response.ok) {
         console.log('✅ Examen creado exitosamente:', data);
         alert('¡Examen creado exitosamente!');
-        
-        
         navigate('/homeprofessor');
+        
+        
       } else {
         setError(data.message || 'Error al crear el examen');
         console.error('❌ Error del servidor:', data);
