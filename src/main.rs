@@ -41,6 +41,8 @@ async fn main() -> Result<(), sqlx::Error>{
         .route("/api/register", post(reg_user))
         .route("/api/exams", get(gather_exams))
         .route("/api/make-exam", post(make_exam).layer(DefaultBodyLimit::max(10240)))
+        .route("/api/connect-room", get(connect_room))
+        .route("/api/query", post(query_db))
         .with_state(admin_pool)
         .layer(CorsLayer::new()
                 .allow_headers(tower_http::cors::Any) //averigua como solo permitir ciertos headers

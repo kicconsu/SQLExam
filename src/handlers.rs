@@ -16,9 +16,11 @@ use serde_json::{Value, json}; // Para manejar JSON arbitrario
 
 use tracing::{info, error};
 
-use crate::aux_fns::*; // constructores de responses, constructores de peticiones...
+use crate::{aux_fns::*, models::StudentQuery}; // constructores de responses, constructores de peticiones...
 use crate::models::{ExamData, ExamMakerResponse}; // tipado fuerte para los examenes para facilitar validaciones
 
+//la mayoria de los handlers se parecen, ya q solo pasan la peticion tal cual a ROBLE.
+//make-exam es muy distinto al necesitar mandar varias peticiones a ROBLE y ademas hablar con posgres.
 
 //Contraseña de test2: aa22A-----
 //POST api/login: tratar de logear usuario en ROBLE
@@ -216,4 +218,31 @@ pub async fn make_exam(State(admin_pool):State<PgPool>, heads:HeaderMap, mut mul
 
 
     (StatusCode::MULTI_STATUS, Json(response_body))
+}
+
+//espera el código de acceso como un parametro
+//regresa el nombre de la base de datos sobre la cual se harán las consultas
+//GET api/connect_room
+pub async fn connect_room(Query(payload):Query<Vec<(String, String)>>, heads:HeaderMap) -> impl IntoResponse {
+    let mut params:Vec<(String, String)> = [("tableName".to_string(), "RoomKeys".to_string())].to_vec();
+    params.append(&mut payload.clone());
+
+    let acc_key:String = token_from_heads(heads);
+
+    info!("\nGET SQLExam/exams detectado,\nparametros: {:?}\naccess_token: {:?}", &params, &acc_key);
+
+    let response =
+        get_queried("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/read", params, acc_key)
+        .await;
+    let send_res = build_ax_response(response).await;
+
+    info!("STATUS devuelto: {:?}", &send_res.status());
+
+    send_res
+}
+
+
+//las consultas se hacen a posgres, no hace falta mandar nada a roble...
+pub async fn query_db(heads:HeaderMap, Json(payload): Json<StudentQuery>) -> impl IntoResponse{
+    build_str_res(500, "wip".to_string())
 }

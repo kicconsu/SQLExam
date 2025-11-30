@@ -23,3 +23,9 @@ pub struct ExamMakerResponse {
     pub questions_table_insert: bool,
     pub posgres_create: bool
 }
+
+#[derive(Deserialize, Debug)]
+pub struct StudentQuery {
+    pub db_name: String,
+    pub query: String
+}
