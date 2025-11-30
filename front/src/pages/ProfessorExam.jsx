@@ -83,8 +83,13 @@ export default function ProfessorExam() {
       
       const user = JSON.parse(localStorage.getItem('user'));
       const token = localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refreshToken');
       const formData = new FormData();
-    
+      if (!token) {
+      console.error('❌ No hay token - redirigiendo al login');
+      navigate('/professorlogin'); // Cambia '/login' por tu ruta de login
+      return;
+    }
       if (dbAsociada) {
         formData.append('db_asociada', dbAsociada);
       }
@@ -111,13 +116,20 @@ export default function ProfessorExam() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+           'X-Refresh-Token': refreshToken
           
         },
         body: formData
       });
 
       const data = await response.text();
-
+      if (response.status === 401) {
+      console.error('❌ Token expirado - limpiando sesión');
+    
+      alert('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
+      navigate('/professorlogin'); 
+      return;
+    }
       if (response.ok) {
         console.log('✅ Examen creado exitosamente:', data);
         alert('¡Examen creado exitosamente!');
