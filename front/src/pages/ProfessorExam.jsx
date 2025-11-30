@@ -106,7 +106,8 @@ export default function ProfessorExam() {
         profe: user?.name, 
         nombre_examen: projectName,
         db_asociada: dbAsociada.name,
-        preguntas: preguntasFormateadas
+        preguntas: preguntasFormateadas,
+        num_preguntas: list.length
       };
 
       
