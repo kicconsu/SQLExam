@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
+use sqlx::{Postgres, pool::Pool};
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct ExamData {
@@ -22,4 +25,17 @@ pub struct ExamMakerResponse {
     pub exam_table_insert: bool,
     pub questions_table_insert: bool,
     pub posgres_create: bool
+}
+
+#[derive(Deserialize, Debug)]
+pub struct StudentQuery {
+    pub nombre_db: String,
+    pub query: String
+}
+
+//Con este modelo guardo el estado de la aplicacion
+//Por ahora, el estado solo involucra un diccionario de la forma {"nombre_db": Pool}
+#[derive(Default, Clone)]
+pub struct AppState {
+    pub db_pools: HashMap<String, Pool<Postgres>>
 }

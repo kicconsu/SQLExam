@@ -1,5 +1,5 @@
 use axum::http::{HeaderMap, Response};
-use reqwest::{Body, StatusCode};
+use reqwest::{Body};
 use serde_json::Value;
 
 pub fn token_from_heads(heads:HeaderMap) -> String {
@@ -43,12 +43,5 @@ pub async fn build_ax_response(reqw_response:reqwest::Response) -> Response<Body
         .status(reqw_response.status())
         //.header(reqw_response.headers())
         .body(Body::from(reqw_response.text().await.unwrap()))
-        .unwrap()
-}
-
-pub fn build_str_res(code:u16, er_msg:String) -> Response<Body> {
-    Response::builder()
-        .status(StatusCode::from_u16(code).unwrap())
-        .body(Body::from(er_msg))
         .unwrap()
 }

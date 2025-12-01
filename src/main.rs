@@ -18,7 +18,7 @@ mod aux_fns;
 mod models;
 mod handlers;
 
-use crate::handlers::*;
+use crate::{handlers::*, models::AppState};
 
 #[tokio::main]
 async fn main() -> Result<(), sqlx::Error>{
@@ -28,9 +28,19 @@ async fn main() -> Result<(), sqlx::Error>{
     //Setup de la conexión con posgreSQL
     dotenv().ok(); //En el .env se guardan variables como la direccion a la db_admin
 
+    let mut global_state = AppState::default();
+
     let admin_db_url = env::var("ADMIN_DB_URL")
         .expect("No se encontró ADMIN_DB_URL en el .env");
     let admin_pool = PgPool::connect(&admin_db_url).await?;
+
+    let test_con_url = env::var("TEST_DB_URL")
+        .expect("No se encontró TEST_DB_URL en el .env");
+    let test_pool = PgPool::connect(&test_con_url).await?;
+
+    global_state.db_pools.insert("admin".to_string(), admin_pool);
+    // SOLO ACA PARA TESTEAR CONSULTAS ----- BORRAR APENAS EXISTA BOTON DE INICIAR EXAMEN!!!!!!!!!!!!!!!
+    global_state.db_pools.insert("sample".to_string(), test_pool);
 
     info!("Backend conectado con posgreSQL!");
 
@@ -41,7 +51,9 @@ async fn main() -> Result<(), sqlx::Error>{
         .route("/api/register", post(reg_user))
         .route("/api/exams", get(gather_exams))
         .route("/api/make-exam", post(make_exam).layer(DefaultBodyLimit::max(10240)))
-        .with_state(admin_pool)
+        .route("/api/connect-room", get(connect_room))
+        .route("/api/query", post(query_db))
+        .with_state(global_state)
         .layer(CorsLayer::new()
                 .allow_headers(tower_http::cors::Any) //averigua como solo permitir ciertos headers
                 .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
