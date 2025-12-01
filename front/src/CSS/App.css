@@ -41,8 +41,121 @@
   color: #888;
 }
 
-.student-button{
-
-  padding: 10px;
-  margin: 10px;
+.role-button {
+  padding: 14px 32px;        /* tamaño consistente */
+  border-radius: 999px;
+  border: none;
+  background-color: var(--secondary);
+  color: var(--primary);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
+
+/* Fondo general para la portada */
+.landing-wrapper {
+  min-height: 100vh;
+  padding: 40px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at top, #f5f5f5 0, #eaeaea 40%, #dcdcdc 100%);
+}
+
+/* Tarjeta principal */
+.landing-card {
+  max-width: 700px;
+  width: 100%;
+  background: var(--primary);
+  color: var(--secondary);
+  border-radius: 22px;
+  border: 1px solid #e1e1e1;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
+  padding: 40px 32px 48px;
+  text-align: center;
+  animation: fadeIn 0.6s ease;
+}
+
+/* Animación de entrada suave */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Título dentro de la portada */
+.landing-card .main-title {
+  font-size: 3rem;
+  font-weight: 800;
+  margin: 0 0 8px;
+}
+
+/* Frase corta debajo del título */
+.main-tagline {
+  font-size: 1.05rem;
+  color: var(--tertiary);
+  margin: 0 0 20px;
+}
+
+/* Párrafo introductorio */
+.main-paragraph {
+  font-size: 0.95rem;
+  margin: 0 0 30px;
+}
+
+/* Sección de selección de rol */
+.role-section {
+  margin-top: 10px;
+}
+
+.role-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+/* Contenedor de botones */
+.role-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+/* Botones principales */
+.role-button {
+  padding: 10px 26px;
+  border-radius: 999px;
+  border: none;
+  background-color: var(--secondary);
+  color: var(--primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease,
+              box-shadow 0.15s ease,
+              background-color 0.15s ease,
+              color 0.15s ease;
+}
+
+/* Hover y active */
+.role-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+}
+
+.role-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+/* Footer (tu componente GetBack) */
+.landing-footer {
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: var(--tertiary);
+}
+
