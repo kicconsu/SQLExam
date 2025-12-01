@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap};
 use std::env;
 
 use axum::{
@@ -7,7 +7,7 @@ use axum::{
     response::IntoResponse, // toda response mandada al front tiene q implementar esto
 };
 
-use sqlx::PgPool;
+use sqlx_pgrow_serde::SerMapPgRow;
 
 use tokio::io::AsyncWriteExt; // stremear a disco asincronicamente
 use tokio::process::Command; // para restaurar la base de datos con un Shell
@@ -16,9 +16,11 @@ use serde_json::{Value, json}; // Para manejar JSON arbitrario
 
 use tracing::{info, error};
 
-use crate::aux_fns::*; // constructores de responses, constructores de peticiones...
-use crate::models::{ExamData, ExamMakerResponse}; // tipado fuerte para los examenes para facilitar validaciones
+use crate::{aux_fns::*, models::StudentQuery}; // constructores de responses, constructores de peticiones...
+use crate::models::{AppState, ExamData, ExamMakerResponse}; // tipado fuerte para los examenes para facilitar validaciones
 
+//la mayoria de los handlers se parecen, ya q solo pasan la peticion tal cual a ROBLE.
+//make-exam es muy distinto al necesitar mandar varias peticiones a ROBLE y ademas hablar con posgres.
 
 //Contraseña de test2: aa22A-----
 //POST api/login: tratar de logear usuario en ROBLE
@@ -86,7 +88,7 @@ pub async fn gather_exams(Query(payload):Query<Vec<(String, String)>>, heads:Hea
 
 */
 //POST api/make-exam
-pub async fn make_exam(State(admin_pool):State<PgPool>, heads:HeaderMap, mut multipart: Multipart) -> impl IntoResponse {
+pub async fn make_exam(State(app_state):State<AppState>, heads:HeaderMap, mut multipart: Multipart) -> impl IntoResponse {
     info!("POST api/make-exam detectado...");
 
     //diccionario para manejar los campos que no son archivos
@@ -186,7 +188,7 @@ pub async fn make_exam(State(admin_pool):State<PgPool>, heads:HeaderMap, mut mul
 
         // para restaurar la DB del archivo .sql, primero se crea la base de datos que vaya a sostener las tablas
         sqlx::query(&format!("CREATE DATABASE {}", db_name.strip_suffix(".sql").unwrap()))
-            .execute(&admin_pool)
+            .execute(&app_state.db_pools["admin"])
             .await
             .unwrap_or_default();
         //^^^^^^^ el deber ser es verificar que la DB ya exista o no antes de crearla. TODO si quieres ser buen ciudadano
@@ -216,4 +218,83 @@ pub async fn make_exam(State(admin_pool):State<PgPool>, heads:HeaderMap, mut mul
 
 
     (StatusCode::MULTI_STATUS, Json(response_body))
+}
+
+//espera el código de acceso como un parametro
+//regresa el nombre de la base de datos sobre la cual se harán las consultas
+//GET api/connect-room
+pub async fn connect_room(Query(payload):Query<Vec<(String, String)>>, heads:HeaderMap) -> impl IntoResponse {
+    let mut params:Vec<(String, String)> = [("tableName".to_string(), "RoomKeys".to_string())].to_vec();
+    params.append(&mut payload.clone());
+
+    let acc_key:String = token_from_heads(heads);
+
+    info!("\nGET SQLExam/exams detectado,\nparametros: {:?}\naccess_token: {:?}", &params, &acc_key);
+
+    let response =
+        get_queried("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/read", params, acc_key)
+        .await;
+    let send_res = build_ax_response(response).await;
+
+    info!("STATUS devuelto: {:?}", &send_res.status());
+
+    send_res
+}
+
+
+
+//las consultas se hacen a posgres, no hace falta mandar nada a roble... creo
+//una StudentQuery es un json de la forma:
+/*
+    {
+        nombre_db: "database_ejemplo",
+        query: "SELECT * FROM..."
+    }
+*/
+//para hacer una busqueda toca saber a cual Pool mandarle.
+//las Pool activas se guardan en la app_state. (definición de AppState en models.rs)
+//al buscar en app_state.db_pools["database_ejemplo"] se obtiene la pool de la database con ese nombre.
+//claramente, dos database distintas no pueden tener el mismo nombre. igual en posgreSQL tampoco se pueden crear DB del mismo nombre.
+//TODO: creo q está pendiente validar esto ^^^^^^^
+//POST api/query
+pub async fn query_db(State(app_state):State<AppState>, _heads:HeaderMap, Json(payload): Json<StudentQuery>) -> impl IntoResponse {
+    info!("POST api/query detectado");
+    let db_pool = match app_state.db_pools.get(&payload.nombre_db) {
+        Some(pool) => pool,
+        None => {
+            let err_msg = "Trató de hacer una busqueda en una base de datos, pero esta no se encuentra en el estado del servidor.";
+            error!(err_msg);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"ERROR": err_msg})))
+        }
+    };
+
+    //TODO: problemillas de memoria. raw_sql + fetch_all busca hacer TODO de un arranque. quizas si lo trato como Stream y limito hasta donde se lee...
+    let query_result = match sqlx::raw_sql(&payload.query)
+        .fetch_all(db_pool)
+        .await {
+            Ok(rows) => rows,
+            Err(e) => {
+                let err_msg = "Hay un problema con esta consulta.";
+                error!(err_msg);
+                return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+                    "ERROR": err_msg,
+                    "Posgres Dice":e.to_string()
+                    .strip_prefix("error returned from database: ")
+                })))
+            }
+        };
+    
+    //el resultado de la busqueda puede ser literalmente lo que sea, entonces toca manejar JsonValues arbitrarios.
+    //para eso se usa sqlx-pgrow-serde. el problema es que ese crate es solo compatible con sqlx 0.7, y esa version será incompatible con rust pronto.
+    //entonces, IDEALMENTE, TODO: implementarias las conversiones de los tipos de posgres -> JsonValue para que estén al dia. aunque sea pasarlas a String
+    //mientras tanto, as of rust 1.91.0, esta app es compatible.
+    let query_response:Vec<SerMapPgRow> = query_result.into_iter()
+            .map(|row| {SerMapPgRow::from(row)})
+            .collect();
+    
+    info!("respuesta obtenida de posgres! mandandola...");
+
+    return (StatusCode::OK, Json(json!({
+        "respuesta":query_response
+    })))
 }
