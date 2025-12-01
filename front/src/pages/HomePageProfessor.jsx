@@ -200,5 +200,6 @@ async function cargarExamenes() {
       </div>
   
     </div>
-  );
-  }
+    </div>
+  )
+}
