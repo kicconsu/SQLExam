@@ -69,7 +69,8 @@ async function cargarExamenes() {
         response = await fetch('http://localhost:3000/api/exams', {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'X-Refresh-Token': refreshToken
           }
         });
 
@@ -156,10 +157,10 @@ async function cargarExamenes() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         {examenes.map((examen) => (
-          <div key={examen.id}>
+         <div key={examen._id}>
 
             <button
-              onClick={() => navigate(`/viewExam`)} 
+              onClick={() => navigate(`/viewExam/${examen._id}`)} 
             >
               {examen.nombre_examen}
               <div style={{ fontSize: '14px', marginTop: '5px' }}>
@@ -168,7 +169,7 @@ async function cargarExamenes() {
             </button>
 
             <button 
-              onClick={() => handleDeleteExam(examen.id, examen.nombre_examen)}
+              onClick={() => handleDeleteExam(examen._id, examen.nombre_examen)}
             >
               Eliminar
             </button>

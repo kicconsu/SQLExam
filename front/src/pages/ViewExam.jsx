@@ -4,7 +4,7 @@ import "../CSS/ProfessorExam.css";
 
 export default function ViewExam() {
   const navigate = useNavigate();
-  const { nombreExamen } = useParams();
+  const { examId } = useParams();
   const location = useLocation();
   
   // Estados
@@ -22,10 +22,12 @@ export default function ViewExam() {
   const [editingName, setEditingName] = useState(false);
   const [editingDb, setEditingDb] = useState(false);
 
+  const [nombreExamen, setNombreExamen] = useState('');
+
   // Cargar datos del examen al montar el componente
   useEffect(() => {
     cargarExamen();
-  }, [nombreExamen]);
+  }, [examId]);
 
   async function cargarExamen() {
     setLoading(true);
@@ -42,7 +44,7 @@ export default function ViewExam() {
 
       // Obtener datos del examen
       const responseExam = await fetch(
-        `http://localhost:3000/api/exams`,
+        `http://localhost:3000/api/exams?_id=${examId}`,
         {
           method: 'GET',
           headers: {
@@ -63,7 +65,7 @@ export default function ViewExam() {
         const examData = await responseExam.json();
         console.log('📋 Datos del examen:', examData);
 
-        // Si viene del state de location, usar eso
+        // Si viene desde el home: location.state.examen
         const examen = location.state?.examen || examData[0];
 
         if (examen) {
@@ -74,7 +76,7 @@ export default function ViewExam() {
 
           // Obtener preguntas
           const responsePreguntas = await fetch(
-            `http://localhost:3000/api/exams'`,
+            `http://localhost:3000/api/exams?_id=${examId}`,
             {
               method: 'GET',
               headers: {
@@ -89,6 +91,7 @@ export default function ViewExam() {
             console.log('❓ Preguntas:', preguntas);
             setList(preguntas || []);
           }
+
         } else {
           setError('Examen no encontrado');
         }
@@ -172,7 +175,6 @@ export default function ViewExam() {
 
       const formData = new FormData();
       
-      // Si se cambió el archivo de base de datos
       if (dbAsociada) {
         formData.append('db_asociada', dbAsociada);
       }
@@ -186,7 +188,7 @@ export default function ViewExam() {
 
       const payload = {
         profe: user?.name,
-        nombre_examen_original: originalProjectName, // Para identificar cuál actualizar
+        nombre_examen_original: originalProjectName,
         nombre_examen: projectName,
         db_asociada: dbAsociada ? dbAsociada.name : dbFileName,
         preguntas: preguntasFormateadas
@@ -194,9 +196,8 @@ export default function ViewExam() {
 
       formData.append('exam_data', JSON.stringify(payload));
 
-      // Endpoint para actualizar (necesitarás crearlo en tu backend)
       const response = await fetch('http://localhost:3000/api/update-exam', {
-        method: 'PUT',
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'X-Refresh-Token': refreshToken
@@ -216,13 +217,7 @@ export default function ViewExam() {
         console.log('✅ Cambios guardados:', data);
         alert('¡Cambios guardados exitosamente!');
         
-        // Actualizar el nombre original si cambió
         setOriginalProjectName(projectName);
-        
-        // Navegar a la nueva URL si cambió el nombre
-        if (projectName !== nombreExamen) {
-          navigate(`/view-exam/${projectName}`, { replace: true });
-        }
       } else {
         const errorData = await response.text();
         setError('Error al guardar cambios');
@@ -254,7 +249,7 @@ export default function ViewExam() {
 
       if (response.ok) {
         setIsPublished(true);
-        alert('¡Examen publicado! Ahora los estudiantes pueden tomarlo.');
+        alert('¡Examen publicado!');
       } else {
         alert('Error al publicar el examen');
       }
@@ -319,12 +314,13 @@ export default function ViewExam() {
     <>
       <h1 className="main-title">
         {editingName ? 'Editando Examen' : 'Ver Examen'}
-        {isPublished && <span style={{ color: 'green', marginLeft: '10px' }}>✓ Publicado</span>}
+        {isPublished && <span >✓ Publicado</span>}
       </h1>
       
       {/* Nombre del examen */}
       <form onSubmit={(e) => e.preventDefault()}>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <label className="mi-label">Nombre del examen:</label>
           <input 
             className="Project-Name"
             placeholder="Nombre del examen"
@@ -333,13 +329,7 @@ export default function ViewExam() {
             disabled={!editingName || saving}
             style={{ flex: 1 }}
           />
-          <button 
-            type="button"
-            onClick={() => setEditingName(!editingName)}
-            disabled={saving}
-          >
-            {editingName ? '✓ Confirmar' : '✏️ Editar Nombre'}
-          </button>
+         
         </div>
 
         {/* Base de datos */}
@@ -355,18 +345,11 @@ export default function ViewExam() {
               accept=".sql"
               onChange={handleFileChange}
               disabled={saving}
-              style={{ marginTop: '10px' }}
+              
             />
           )}
           
-          <button 
-            type="button"
-            onClick={() => setEditingDb(!editingDb)}
-            disabled={saving}
-            style={{ marginLeft: '10px' }}
-          >
-            {editingDb ? '✓ Confirmar' : '✏️ Cambiar BD'}
-          </button>
+          
         </div>
       </form>
 
@@ -427,7 +410,7 @@ export default function ViewExam() {
         ))}
       </ul>
 
-      {/* Botones de acción */}
+      {/* Botones */}
       <div style={{ 
         display: 'flex', 
         gap: '10px', 
@@ -437,14 +420,7 @@ export default function ViewExam() {
         <button 
           onClick={handleSaveChanges}
           disabled={saving}
-          style={{ 
-            backgroundColor: '#28a745',
-            color: 'white',
-            padding: '10px 20px',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: saving ? 'not-allowed' : 'pointer'
-          }}
+       
         >
           {saving ? 'Guardando...' : '💾 Guardar Cambios'}
         </button>
@@ -453,14 +429,7 @@ export default function ViewExam() {
           <button 
             onClick={handleUnpublish}
             disabled={saving}
-            style={{ 
-              backgroundColor: '#ffc107',
-              color: 'black',
-              padding: '10px 20px',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer'
-            }}
+           
           >
             📤 Despublicar Examen
           </button>
@@ -468,14 +437,7 @@ export default function ViewExam() {
           <button 
             onClick={handlePublish}
             disabled={saving}
-            style={{ 
-              backgroundColor: '#007bff',
-              color: 'white',
-              padding: '10px 20px',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer'
-            }}
+            
           >
             📢 Publicar Examen
           </button>
@@ -484,14 +446,7 @@ export default function ViewExam() {
         <button 
           onClick={handleViewResults}
           disabled={saving}
-          style={{ 
-            backgroundColor: '#17a2b8',
-            color: 'white',
-            padding: '10px 20px',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer'
-          }}
+          
         >
           📊 Ver Resultados
         </button>
@@ -499,14 +454,7 @@ export default function ViewExam() {
         <button 
           onClick={handleCancel}
           disabled={saving}
-          style={{ 
-            backgroundColor: '#6c757d',
-            color: 'white',
-            padding: '10px 20px',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer'
-          }}
+          
         >
           ← Volver
         </button>

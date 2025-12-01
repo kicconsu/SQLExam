@@ -19,7 +19,7 @@ createRoot(document.getElementById('root')).render(
         <Route path = "professorlogin" element ={ <ProfessorLogin />} />
         <Route path = "homeprofessor" element ={ <HomePageprofessor />} />
         <Route path = "ProfessorExam" element ={ <ProfessorExam />} />
-        <Route path = "viewExam" element ={ <ViewExam />} />
+        <Route path="/viewExam/:examId" element={<ViewExam />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,
