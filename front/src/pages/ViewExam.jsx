@@ -237,7 +237,7 @@ export default function ViewExam() {
       const token = localStorage.getItem('token');
       const refreshToken = localStorage.getItem('refreshToken');
 
-      const response = await fetch('http://localhost:3000/api/publish-exam', {
+      const response = await fetch('http://localhost:3000/api/open-room', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -247,6 +247,9 @@ export default function ViewExam() {
         body: JSON.stringify({ nombre_examen: projectName })
       });
       //GUARDAR CODIGO DE SALA EN LOCAL STORAGE FALTA ESO 
+      const data = await response.json();
+      localStorage.setItem('roomCode', data.room_key);
+
       if (response.status === 401) {
         localStorage.clear();
         alert('Tu sesión ha expirado');
@@ -256,7 +259,8 @@ export default function ViewExam() {
 
       if (response.ok) {
         setIsPublished(true);
-        alert('¡Examen publicado!');
+        alert('¡Examen publicado! Código del examen: ' + data.room_key);
+
         navigate('/homeprofessor');
       } else {
         alert('Error al publicar el examen');
@@ -273,7 +277,7 @@ export default function ViewExam() {
       const token = localStorage.getItem('token');
       const refreshToken = localStorage.getItem('refreshToken');
 
-      const response = await fetch('http://localhost:3000/api/unpublish-exam', {
+      const response = await fetch('http://localhost:3000/api/close-room', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -292,7 +296,7 @@ export default function ViewExam() {
 
       if (response.ok) {
         setIsPublished(false);
-        alert('Examen despublicado');
+        alert('Examen cerrado');
         navigate('/homeprofessor');
       } else {
         alert('Error al despublicar el examen');
@@ -409,7 +413,7 @@ export default function ViewExam() {
             disabled={saving}
            
           >
-            📤 Despublicar Examen
+            📤 Cerrar Examen
           </button>
         ) : (
           <button 
@@ -417,7 +421,7 @@ export default function ViewExam() {
             disabled={saving}
             
           >
-            📢 Publicar Examen
+            📢 Abrir Examen
           </button>
         )}
 
