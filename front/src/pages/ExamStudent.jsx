@@ -2,7 +2,7 @@ import { useState } from "react";
 import "../CSS/ProfessorExam.css";
 import ProfessorLogin from "./ProfessorLogin";
 import { useNavigate } from 'react-router-dom';
-export default function ProfessorExam() {
+export default function ExamStudent() {
   const navigate = useNavigate();
   const [projectName, setProjectName] = useState('');
   const [question, setQuestion] = useState("");

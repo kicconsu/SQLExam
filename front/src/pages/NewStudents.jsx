@@ -1,11 +1,11 @@
-import { useState } from 'react'
-import '../CSS/ProfessorLogin.css'
-import { useNavigate } from 'react-router-dom'
-import GetBack from '../components/getback.jsx'
+
+import '../CSS/NewStudents.css'
+import  GetBack from '../components/getback.jsx'
 import ButtonRedirect from '../components/buttonredirect.jsx'
+import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 
-
-export default function StudentLogin() {
+export default function NewStudents() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
@@ -16,6 +16,7 @@ export default function StudentLogin() {
   const [error, setError] = useState(null);
   const [status, setStatus] = useState(null);
 
+  
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
@@ -23,11 +24,11 @@ export default function StudentLogin() {
 
     const jsonData = {
       email: formData.email,
-      codigo: formData.codigo
+      password: formData.password
     };
 
     try {
-      const response = await fetch("http://localhost:3000/api/login", { //esta direccion puede varias confirma plis
+      const response = await fetch("http://localhost:3000/api/create-student", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -40,49 +41,63 @@ export default function StudentLogin() {
       
       const data = await response.json();
       console.log("Respuesta del backend:", data);
-
+       if (response.status === 401) {
+        localStorage.clear();
+        alert('Tu sesión ha expirado');
+        navigate('/professorlogin');
+        return;
+      }
 
       if (response.ok) {
-        console.log("Login exitoso:", data);
+        console.log("Se creo estudiante exitoso:", data);
         console.log("Status:", response.status);
+        alert('¡Estudiante creado exitosamente!');
+        
   
-        // Guardar token y datos (No se como funcione para estudiantes)
+        // Guardar token y datos pro
         localStorage.setItem("token", data.accessToken);
         localStorage.setItem("refreshToken", data.reFreshToken);
         localStorage.setItem("user", JSON.stringify(data.user));
 
         console.log("Datos guardados en localStorage.");
 
-        navigate('/homestudent');
+        navigate('/homeprofessor');
       
       } else {
         setError(data.message || "Error en el login");
         console.error("Error del servidor:", data);
+        alert('Error al crear el estudiante');
+        navigate('/homeprofessor'); ///PROVISIONAL BORRAR DESPUJES
       }
       
     } catch (err) {
       console.error("Error de red:", err);
       setError("Error de conexión con el servidor");
+      console.error('❌ Error:', err);
+      alert('Error de conexión');
     } finally {
       setLoading(false);
     }
   }
+  function handleCancel() {
+    
+      navigate('/homeprofessor');
+    
+  }
 
   return (
-    <div className='login-container'>
-      <h1 className="main-title">
-        SQL EXAM
-      </h1>
-      <h2 className="StudentLogin-title">
-        Student Login
-      </h2>
-      <p className="StudentLogin-paragraph">
+    <>
+    <head>
+      <title>Nuevo Estudiante</title>
+    </head>
+    <h1 className="NewStudents-title">Nuevo Estudiante</h1>
+      <p className="NewStudents-paragraph">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit.
       </p>
  <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="Email"
+          placeholder="Inserte el correo del estudiante"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           disabled={loading}
@@ -90,14 +105,14 @@ export default function StudentLogin() {
 
         <input
           type="password"
-          placeholder="Codigo"
+          placeholder="Inserte el código del estudiante"
           value={formData.codigo}
           onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
           disabled={loading}
         />
 
         <button type="submit" disabled={loading}>
-          {loading ? "Cargando..." : "Log in"}
+          {loading ? "Cargando..." : "Crear Estudiante"}
         </button>
 
       </form>
@@ -105,9 +120,17 @@ export default function StudentLogin() {
       {error && <p style={{color: 'red'}}>{error}</p>}
       {status && <p>Status: {status}</p>}
 
-      <p2 className="StudentLogin-paragraph2">
+      <p className="NewStudents-paragraph2">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-     </p2>
-    </div>
+      </p>
+      
+        <button 
+          onClick={handleCancel}
+          
+          
+        >
+          ← Volver
+        </button>
+    </>
   )
 }
