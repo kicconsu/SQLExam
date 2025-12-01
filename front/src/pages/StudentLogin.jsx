@@ -8,7 +8,6 @@ import ButtonRedirect from '../components/buttonredirect.jsx'
 export default function StudentLogin() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: "",
     codigo: ""
   });
   
@@ -22,14 +21,14 @@ export default function StudentLogin() {
     setError(null);
 
     const jsonData = {
-      email: formData.email,
       codigo: formData.codigo
     };
 
     try {
-      const response = await fetch("http://localhost:3000/api/login", { //esta direccion puede varias confirma plis
-        method: "POST",
+      const response = await fetch("http://localhost:3000/api/connect-room", { //esta direccion puede varias confirma plis
+        method: "GET",
         headers: {
+        
           "Content-Type": "application/json"
         },
         body: JSON.stringify(jsonData)
@@ -53,7 +52,7 @@ export default function StudentLogin() {
 
         console.log("Datos guardados en localStorage.");
 
-        navigate('/homestudent');
+        navigate('/examstudent');
       
       } else {
         setError(data.message || "Error en el login");
@@ -72,19 +71,12 @@ export default function StudentLogin() {
     <>
       <h1 className="main-title">Student Login</h1>
 
-      <h2 className="StudentLogin-title">Student Login</h2>
+      <h2 className="StudentLogin-title">Bienvenido</h2>
 
       <p className="StudentLogin-paragraph">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-      </p>
+        Ingresa el codigo del examen proporcionado por tu profesor       </p>
  <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Email"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          disabled={loading}
-        />
+      
 
         <input
           type="password"
