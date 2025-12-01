@@ -85,7 +85,7 @@ async function cargarExamenes() {
       } else {
         console.error('❌ Refresh token inválido');
         localStorage.clear();
-        navigate('/professorlogin');
+        navigate('/studentlogin');
         return;
       }
     }
@@ -114,55 +114,18 @@ async function cargarExamenes() {
   }
 }
 
-  async function handleDeleteExam(examId, projectName) {
-    if (!window.confirm(`¿Seguro que quieres eliminar "${projectName}"?`)) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const refreshToken = localStorage.getItem('refreshToken');
-      const response = await fetch('http://localhost:3000/api/delete-exam', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Refresh-Token': refreshToken ,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ projectName })
-      });
-
-      if (response.ok) {
-        alert('Examen eliminado exitosamente');
-        cargarExamenes();
-      } else {
-        alert('Error al eliminar el examen');
-      }
-
-    } catch (err) {
-      console.error('❌ Error:', err);
-      alert('Error de conexión');
-    }
-  }
-
+  
   if (loading) {
     return <div><h1>Cargando exámenes...</h1></div>;
   }
 
   return (
     <>
-      <h1 className="main-title">Panel de control</h1>
-      <ButtonRedirect 
-        to="/NewStudents" 
-        label="Nuevo Estudiante"
-        className="create-newstudent-button"
-      />
-      <h3>Tus proyectos</h3>
+      <h1 className="main-title">Home</h1>
+      
+      <h3>Tus examenes</h3>
 
-      <ButtonRedirect 
-        to="/professorexam" 
-        label="Crear Examen"
-        className="create-exam-button"
-      />
-
+      
       {examenes.length === 0 && !loading && (
         <p>No tienes exámenes creados todavía</p>
       )}
@@ -180,11 +143,6 @@ async function cargarExamenes() {
               </div>
             </button>
 
-            <button 
-              onClick={() => handleDeleteExam(examen._id, examen.nombre_examen)}
-            >
-              Eliminar
-            </button>
 
           </div>
         ))}
