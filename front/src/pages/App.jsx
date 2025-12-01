@@ -2,6 +2,7 @@
 import '../CSS/App.css'
 import  GetBack from '../components/getback.jsx'
 import ButtonRedirect from '../components/buttonredirect.jsx'
+import { useNavigate } from 'react-router-dom'
 export default function App() {
 
   return (

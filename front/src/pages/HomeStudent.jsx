@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import '../CSS/HomePageprofessor.css'
+import '../CSS/HomeStudent.css'
 import GetBack from '../components/getback.jsx'
 import ButtonRedirect from '../components/buttonredirect.jsx'
 import { useNavigate } from 'react-router-dom'
 
-export default function HomePageprofessor() {
+export default function HomeStudent() {
   const navigate = useNavigate();
   const [profe, setProfe] = useState(null);
   const [examenes, setExamenes] = useState([]);

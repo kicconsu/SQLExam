@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import "../CSS/ProfessorExam.css";
+import "../CSS/ViewExam.css";
 
 export default function ViewExam() {
   const navigate = useNavigate();
   const { examId } = useParams();
   const location = useLocation();
   
-  // Estados
+  
   const [projectName, setProjectName] = useState('');
   const [originalProjectName, setOriginalProjectName] = useState('');
   const [question, setQuestion] = useState("");
@@ -246,12 +246,21 @@ export default function ViewExam() {
         },
         body: JSON.stringify({ nombre_examen: projectName })
       });
+      //GUARDAR CODIGO DE SALA EN LOCAL STORAGE FALTA ESO 
+      if (response.status === 401) {
+        localStorage.clear();
+        alert('Tu sesión ha expirado');
+        navigate('/professorlogin');
+        return;
+      }
 
       if (response.ok) {
         setIsPublished(true);
         alert('¡Examen publicado!');
+        navigate('/homeprofessor');
       } else {
         alert('Error al publicar el examen');
+        navigate('/homeprofessor'); ///PROVISIONAL BORRAR DESPUJES
       }
     } catch (err) {
       console.error('❌ Error:', err);
@@ -274,11 +283,20 @@ export default function ViewExam() {
         body: JSON.stringify({ nombre_examen: projectName })
       });
 
+      if (response.status === 401) {
+        localStorage.clear();
+        alert('Tu sesión ha expirado');
+        navigate('/professorlogin');
+        return;
+      }
+
       if (response.ok) {
         setIsPublished(false);
         alert('Examen despublicado');
+        navigate('/homeprofessor');
       } else {
         alert('Error al despublicar el examen');
+        navigate('/homeprofessor'); ///PROVISIONAL BORRAR DESPUJES  
       }
     } catch (err) {
       console.error('❌ Error:', err);
@@ -291,9 +309,9 @@ export default function ViewExam() {
   }
 
   function handleCancel() {
-    if (window.confirm('¿Volver sin guardar cambios?')) {
+    
       navigate('/homeprofessor');
-    }
+    
   }
 
   if (loading) {
@@ -353,25 +371,9 @@ export default function ViewExam() {
         </div>
       </form>
 
-      {/* Agregar nueva pregunta */}
-      <h2 style={{ marginTop: '30px' }}>Agregar Pregunta</h2>
-      <form onSubmit={addQuestion}>
-        <input
-          className="question-item"
-          placeholder="Enunciado de la pregunta"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-        />
-
-        <input
-          className="answer-item"
-          placeholder="Consulta esperada (respuesta)"
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-        />
-
-        <input type="submit" id="submit_button" value="Agregar Pregunta" />
-      </form>
+      
+      <h2 style={{ marginTop: '30px' }}>Preguntas </h2>
+    
 
       {/* Lista de preguntas */}
       <h2>Lista de Preguntas ({list.length})</h2>
@@ -380,32 +382,14 @@ export default function ViewExam() {
           <li key={index}>
             <label>
               <span className="question-item">
-                {index + 1}. {item.enunciado}
+                {index + 1}. Pregunta: {item.enunciado}
               </span>
               <span className="answer-item">
                 Respuesta: {item.consulta_esperada}
               </span>
             </label>
 
-            <span
-              className="edit-btn"
-              onClick={() => {
-                const update = prompt("Editar enunciado:", item.enunciado);
-                const update2 = prompt("Editar consulta esperada:", item.consulta_esperada);
-                if (update !== null && update2 !== null) {
-                  const newList = [...list];
-                  newList[index].enunciado = update;
-                  newList[index].consulta_esperada = update2;
-                  setList(newList);
-                }
-              }}
-            >
-              ✏️ Editar
-            </span>
             
-            <span className="delete-btn" onClick={() => deleteItem(index)}>
-              🗑️ Eliminar
-            </span>
           </li>
         ))}
       </ul>
@@ -417,13 +401,7 @@ export default function ViewExam() {
         marginTop: '30px',
         flexWrap: 'wrap' 
       }}>
-        <button 
-          onClick={handleSaveChanges}
-          disabled={saving}
        
-        >
-          {saving ? 'Guardando...' : '💾 Guardar Cambios'}
-        </button>
 
         {isPublished ? (
           <button 
