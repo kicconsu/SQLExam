@@ -80,7 +80,8 @@ async function handleSubmitLogin(e) {
     };
 
     try {
-      const response = await fetch("http://localhost:3000/api/connect-room", { //AVERIGUAR CUAL ES ESTA DIRECCION
+      const response = await fetch("http://localhost:3000/api/login", { 
+        method: "POST",
         headers: {
           
           "Content-Type": "application/json"
