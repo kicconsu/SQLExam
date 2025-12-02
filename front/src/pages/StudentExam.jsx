@@ -4,7 +4,7 @@ import GetBack from '../components/getback.jsx'
 import ButtonRedirect from '../components/buttonredirect.jsx'
 import { useNavigate } from 'react-router-dom'
 
-export default function Student() {
+export default function StudentExam() {
   const navigate = useNavigate();
   const [profe, setProfe] = useState(null);
   const [examenes, setExamenes] = useState([]);

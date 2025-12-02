@@ -28,7 +28,7 @@ export default function NewStudents() {
     };
 
     try {
-      const response = await fetch("http://localhost:3000/api/create-student", {
+      const response = await fetch("http://localhost:3000/api/registert", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
