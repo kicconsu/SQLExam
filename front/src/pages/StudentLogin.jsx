@@ -31,6 +31,7 @@ export default function StudentLogin() {
       const response = await fetch(`http://localhost:3000/api/connect-room?codigo=${formData.codigo}`, { //esta direccion puede varias confirma plis
         method: "GET",
         headers: {
+          "Authorization": `Bearer ${localStorage.getItem('token')}`,
           "Content-Type": "application/json"
         },
         
