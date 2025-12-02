@@ -75,7 +75,7 @@ export default function ProfessorLogin() {
       <h2 className="ProfessorLogin-title">Professor Login</h2>
 
       <p className="ProfessorLogin-paragraph">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        Bienvenido al panel de profesores. Aquí podrás crear exámenes, subir bases de datos y gestionar tus evaluaciones.
       </p>
  <form onSubmit={handleSubmit}>
         <input
@@ -104,7 +104,7 @@ export default function ProfessorLogin() {
       {status && <p>Status: {status}</p>}
 
       <p className="ProfessorLogin-paragraph2">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        El acceso es exclusivo para docentes autorizados por la institución.
       </p>
     </div>
   )

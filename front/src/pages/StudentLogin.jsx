@@ -77,7 +77,7 @@ export default function StudentLogin() {
         Student Login
       </h2>
       <p className="StudentLogin-paragraph">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        Bienvenido al portal de estudiantes. Aquí podrás ingresar para presentar los exámenes asignados por tu profesor.
       </p>
  <form onSubmit={handleSubmit}>
         <input
@@ -106,7 +106,7 @@ export default function StudentLogin() {
       {status && <p>Status: {status}</p>}
 
       <p2 className="StudentLogin-paragraph2">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        Asegúrate de tener una conexión estable antes de comenzar tu evaluación.
      </p2>
     </div>
   )
