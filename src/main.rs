@@ -47,6 +47,7 @@ async fn main() -> Result<(), sqlx::Error>{
         .route("/api/login", post(log_user))
         .route("/api/register", post(reg_user))
         .route("/api/exams", get(gather_exams))
+        .route("/api/exam_info", get(gather_questions))
         .route("/api/make-exam", post(make_exam).layer(DefaultBodyLimit::max(10240)))
         .route("/api/delete-exam", delete(delete_exam))
         .route("/api/connect-room", get(connect_room))
@@ -57,7 +58,7 @@ async fn main() -> Result<(), sqlx::Error>{
         .layer(CorsLayer::new()
                 .allow_headers(tower_http::cors::Any) //averigua como solo permitir ciertos headers
                 .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
-                .allow_methods([Method::GET, Method::POST, Method::OPTIONS]));
+                .allow_methods([Method::GET, Method::POST, Method::OPTIONS, Method::DELETE]));
     let addr = "0.0.0.0:3000";
     let listener = tokio::net::TcpListener::bind(addr)
         .await
