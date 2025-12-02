@@ -1,4 +1,4 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 use std::{env};
 use rand::distr::{Alphanumeric, SampleString};
 
@@ -8,7 +8,7 @@ use axum::{
     response::IntoResponse, // toda response mandada al front tiene q implementar esto
 };
 
-use sqlx::PgPool;
+use sqlx::{PgPool};
 use sqlx_pgrow_serde::SerMapPgRow;
 
 use tokio::io::AsyncWriteExt; // stremear a disco asincronicamente
@@ -18,8 +18,8 @@ use serde_json::{Value, json}; // Para manejar JSON arbitrario
 
 use tracing::{info, error};
 
-use crate::{aux_fns::*, models::StudentQuery}; // constructores de responses, constructores de peticiones...
-use crate::models::{AppState, ExamData, ExamMakerResponse}; // tipado fuerte para los examenes para facilitar validaciones
+use crate::aux_fns::*; // constructores de responses, constructores de peticiones...
+use crate::models::{AppState, ExamData, ExamMakerResponse, StudentQuery}; // tipado fuerte para los examenes para facilitar validaciones
 
 //la mayoria de los handlers se parecen, ya q solo pasan la peticion tal cual a ROBLE.
 //make-exam es muy distinto al necesitar mandar varias peticiones a ROBLE y ademas hablar con posgres.
@@ -189,10 +189,21 @@ pub async fn make_exam(State(app_state):State<AppState>, heads:HeaderMap, mut mu
         //ya con los datos en roble, se monta la db del examen a posgres
 
         // para restaurar la DB del archivo .sql, primero se crea la base de datos que vaya a sostener las tablas
+        let admin_pool: PgPool;
+        {   
+            let state_pools = app_state.db_pools.lock().unwrap();
+            admin_pool = match state_pools.get("admin") {
+                Some(p) => p.clone(),
+                None => {
+                    error!("pool de admin no encontrada en el Estado de la app. what the hell");
+                    return(StatusCode::INTERNAL_SERVER_ERROR, Json(response_body));
+                }
+            }
+        }
         sqlx::query(&format!("CREATE DATABASE {}", db_name.strip_suffix(".sql").unwrap()))
-            .execute(&app_state.db_pools["admin"])
-            .await
-            .unwrap_or_default();
+                .execute(&admin_pool)
+                .await
+                .unwrap_or_default();
         //^^^^^^^ el deber ser es verificar que la DB ya exista o no antes de crearla. TODO si quieres ser buen ciudadano
 
         info!("------- DATABASE creada -------");
@@ -261,18 +272,26 @@ pub async fn connect_room(Query(payload):Query<Vec<(String, String)>>, heads:Hea
 //POST api/query
 pub async fn query_db(State(app_state):State<AppState>, _heads:HeaderMap, Json(payload): Json<StudentQuery>) -> impl IntoResponse {
     info!("POST api/query detectado");
-    let db_pool = match app_state.db_pools.get(&payload.nombre_db) {
-        Some(pool) => pool,
-        None => {
-            let err_msg = "Trató de hacer una busqueda en una base de datos, pero esta no se encuentra en el estado del servidor.";
-            error!(err_msg);
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"ERROR": err_msg})))
-        }
-    };
+
+    //en realidad los Pools son referencias a un SharedPool interno de sqlx.
+    //es decir, los clones de Pool que se sacan del AppState son clones de referencias, no de las conexiones reales a posgres.
+    //por lo que lo siguiente es el deber ser:
+    let db_pool: PgPool; 
+    {
+        let state_pools = app_state.db_pools.lock().unwrap();
+        db_pool = match state_pools.get(&payload.nombre_db) {
+            Some(pool) => pool.clone(), //toca clonar aca para apaciguar a los dioses del thread-safety (no se peude usar .await dentro de un bloque mutex)
+            None => {
+                let err_msg = "Trató de hacer una busqueda en una base de datos, pero esta no se encuentra en el estado del servidor.";
+                error!(err_msg);
+                return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"ERROR": err_msg})))
+            }
+        };
+    }
 
     //TODO: problemillas de memoria. raw_sql + fetch_all busca hacerlo de un arranque. quizas si lo trato como Stream y limito hasta donde se lee...
     let query_result = match sqlx::raw_sql(&payload.query)
-        .fetch_all(db_pool)
+        .fetch_all(&db_pool)
         .await {
             Ok(rows) => rows,
             Err(e) => {
@@ -311,7 +330,7 @@ pub async fn query_db(State(app_state):State<AppState>, _heads:HeaderMap, Json(p
     recuerda el access_token en el header!!
 */
 //POST api/open-room
-pub async fn open_room(State(mut app_state):State<AppState>, heads:HeaderMap, Json(payload): Json<Value>) -> impl IntoResponse {
+pub async fn open_room(State(app_state):State<AppState>, heads:HeaderMap, Json(payload): Json<Value>) -> impl IntoResponse {
     info!("POST api/open-room detectado");
     let mut ex_name = match payload.get("nombre_examen") {
         Some(name) => name.to_string(),
@@ -382,7 +401,10 @@ pub async fn open_room(State(mut app_state):State<AppState>, heads:HeaderMap, Js
 
     info!("Conexión con posgres abierta!");
 
-    app_state.db_pools.insert(db_name, pool);
+    {
+        let mut pools = app_state.db_pools.lock().unwrap();
+        pools.insert(db_name, pool);
+    }
 
     info!("Examen realizado con exito!\nEstado actual: {:?}", &app_state.db_pools);
 
@@ -399,7 +421,7 @@ pub async fn open_room(State(mut app_state):State<AppState>, heads:HeaderMap, Js
     }
 */
 //POST api/close-room
-pub async fn close_room(State(mut app_state):State<AppState>, heads:HeaderMap, Json(payload):Json<Value>) -> impl IntoResponse {
+pub async fn close_room(State(app_state):State<AppState>, heads:HeaderMap, Json(payload):Json<Value>) -> impl IntoResponse {
     info!("POST api/close-room detectado");
 
     let mut examen = match payload.get("nombre_examen") {
@@ -443,15 +465,26 @@ pub async fn close_room(State(mut app_state):State<AppState>, heads:HeaderMap, J
     info!("tratando de remover db: {} del Estado.\nEstado: {:?}", &db, &app_state);
 
     //ya con el nombre de la db se puede buscar la pool asociada a esa db para cerrarla
-    let pool = match app_state.db_pools.remove(&db) {
-        Some(p) => p,
-        None => {
-            error!("La base de datos no se encuentra en el Estado de la aplicación. Estas tratando de cerrar un examen que no ha sido iniciado? Eso o el nombre de la db en roble está mal escrito.");
-            return (StatusCode::BAD_REQUEST, Json(json!("La base de datos no se encuentra en el Estado de la aplicación. Estas tratando de cerrar un examen que no ha sido iniciado? Eso o el nombre de la db en roble está mal escrito.")));
-        }
-    };
+    //let f: bool;
+    let pool: PgPool;
+    {
+        let mut state_pools = app_state.db_pools.lock().unwrap();
+        pool = match state_pools.remove(&db) {
+            Some(p) => {
+                //f = true;
+                p.clone()
+            },
+            None => {
+                error!("La base de datos no se encuentra en el Estado de la aplicación. Estas tratando de cerrar un examen que no ha sido iniciado? Eso o el nombre de la db en roble está mal escrito.");
+                //f = false;
+                return (StatusCode::BAD_REQUEST, Json(json!("La base de datos no se encuentra en el Estado de la aplicación. Estas tratando de cerrar un examen que no ha sido iniciado? Eso o el nombre de la db en roble está mal escrito.")));
+            }
+        };
+    }
     pool.close().await;
-
+    /*if !f {
+        return (StatusCode::BAD_REQUEST, Json(json!("La base de datos no se encuentra en el Estado de la aplicación. Estas tratando de cerrar un examen que no ha sido iniciado? Eso o el nombre de la db en roble está mal escrito.")));
+    }*/
     info!("Pool removida del Estado exitosamente, tratando de remover registro en Roble...");
 
     //ya luego se tira el DELETE a roble para borrar los cuartos con esa db. hay un ligero problema y es que significa que
