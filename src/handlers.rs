@@ -313,21 +313,23 @@ pub async fn query_db(State(app_state):State<AppState>, _heads:HeaderMap, Json(p
 //POST api/open-room
 pub async fn open_room(State(mut app_state):State<AppState>, heads:HeaderMap, Json(payload): Json<Value>) -> impl IntoResponse {
     info!("POST api/open-room detectado");
-    let ex_name = match payload.get("nombre_examen") {
+    let mut ex_name = match payload.get("nombre_examen") {
         Some(name) => name.to_string(),
         None => {
             error!("nombre_examen no encontrado en el cuerpo de la solicitud.");
             return (StatusCode::BAD_REQUEST, Json(json!("Trató de abrir un room, pero en la solicitud no se encontró el nombre del examen.\nAsegurese de que el campo sea 'nombre_examen', no 'nombreExamen'!")))
         }
     };
+    ex_name = ex_name.replace("\"", "");
 
-    let db_name = match payload.get("nombre_db") {
+    let mut db_name = match payload.get("nombre_db") {
         Some(name) => name.to_string(),
         None => {
-            error!("nombre_examen no encontrado en el cuerpo de la solicitud.");
+            error!("nombre_db no encontrado en el cuerpo de la solicitud.");
             return (StatusCode::BAD_REQUEST, Json(json!("Trató de abrir un room, pero en la solicitud no se encontró el nombre de la db.\nAsegurese de que el campo sea 'nombre_db', no 'nombreDb'!")))
         }
     };
+    db_name = db_name.replace("\"", "");
 
     let acc_key = token_from_heads(heads);
 
@@ -340,7 +342,7 @@ pub async fn open_room(State(mut app_state):State<AppState>, heads:HeaderMap, Js
     let body = json!({
         "tableName":"RoomKeys",
         "records":[
-            {"nombre_db":db_name, "nombre_examen":ex_name, "key":room_key}
+            {"nombre_db":db_name, "nombre_examen":ex_name, "llave":room_key}
         ]
     });
 
@@ -366,6 +368,8 @@ pub async fn open_room(State(mut app_state):State<AppState>, heads:HeaderMap, Js
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Error interno del backend. revisa la consola!")))
         }
     };
+
+    info!("tratando de conectar a posgres en: {}/{}", &db_url, &db_name);
         
     let pool = match PgPool::connect(&format!("{}/{}", db_url, db_name)).await {
         Ok(p) => p,
@@ -398,13 +402,14 @@ pub async fn open_room(State(mut app_state):State<AppState>, heads:HeaderMap, Js
 pub async fn close_room(State(mut app_state):State<AppState>, heads:HeaderMap, Json(payload):Json<Value>) -> impl IntoResponse {
     info!("POST api/close-room detectado");
 
-    let examen = match payload.get("nombre_examen") {
+    let mut examen = match payload.get("nombre_examen") {
         Some(nombre) => nombre.to_string(),
         None => {
             error!("Solicitud mala. No contiene 'nombre_examen' en el cuerpo.");
             return (StatusCode::BAD_REQUEST, Json(json!("Solicitud mala. No contiene 'nombre_examen' en el cuerpo.")));
         }
     };
+    examen = examen.replace("\"", "");
 
     info!("nombre examen conseguido, tratando de conseguir nombre_db...");
 
