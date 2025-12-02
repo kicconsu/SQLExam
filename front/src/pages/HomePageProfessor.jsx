@@ -127,7 +127,7 @@ async function cargarExamenes() {
           'X-Refresh-Token': refreshToken ,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ projectName })
+        body: JSON.stringify({ "nombre_examen": projectName })
       });
 
       if (response.ok) {

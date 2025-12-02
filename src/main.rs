@@ -57,7 +57,7 @@ async fn main() -> Result<(), sqlx::Error>{
         .layer(CorsLayer::new()
                 .allow_headers(tower_http::cors::Any) //averigua como solo permitir ciertos headers
                 .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
-                .allow_methods([Method::GET, Method::POST, Method::OPTIONS]));
+                .allow_methods([Method::GET, Method::POST, Method::OPTIONS, Method::DELETE]));
     let addr = "0.0.0.0:3000";
     let listener = tokio::net::TcpListener::bind(addr)
         .await

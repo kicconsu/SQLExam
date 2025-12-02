@@ -42,7 +42,8 @@ pub async fn log_user(Json(payload):Json<Value>) -> impl IntoResponse {
 }
 
 // los campos del Body tienen q ser los mismos q salen en la documentacion de ROBLE.
-// POST api/register --- por AHORA usa signup-direct (TODO: cambiar pls)
+// por AHORA el metodo usa la ruta de ROBLE /signup-direct, pero en contextos de produccion se tiene que cambiar a /signup
+// POST api/register
 pub async fn reg_user(Json(payload):Json<Value>) -> impl IntoResponse {
     info!("\nPOST SQLExam/register detectado, credenciales:\n{:?}", &payload);
 
@@ -277,16 +278,18 @@ pub async fn delete_exam(State(app_state):State<AppState>, heads:HeaderMap, Json
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Algo salió mal en el backend. Revisa la consola!!")));
         }
     };
+
+    info!("respuesta de roble obtenida: {}", delete_body);
     
-    let db_name:String = match delete_body[0].get("db_asociada") {
-        Some(name) => name.to_string().strip_suffix(".sql").unwrap().to_owned().replace("\"", ""),
+    let db_name:String = match delete_body.get("db_asociada") {
+        Some(name) => name.to_string().replace(".sql", "").replace("\"", ""),
         None => {
             error!("No se encontró el campo 'db_asociada' en la respuesta de roble. lol");
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Error del backend. Revisa la consola.")));
         }
     };
 
-    info!("examen borrado de ROBLE, tratando de eliminar db de Postgres...");
+    info!("examen borrado de ROBLE, tratando de eliminar db {} de Postgres...", db_name);
 
     let admin_pool:PgPool;
     {
@@ -308,18 +311,27 @@ pub async fn delete_exam(State(app_state):State<AppState>, heads:HeaderMap, Json
     DROP DATABASE your_database_name;
 
     */
-    let query_res = match sqlx::raw_sql(&format!("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{}'; DROP DATABASE {}", db_name, db_name))
+    let disc_db = match sqlx::query(&format!("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{}'", db_name))
                 .execute(&admin_pool)
                 .await {
-
                     Ok(result) => result,
                     Err(e) => {
-                        error!("pues algo salió mal con la consulta a Postgres.\n{}\n", e.to_string());
+                        error!("Algo salió mal desconectando los usuarios de Postgres:\n{}\n", e.to_string());
+                        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Error interno del backend. revisa la consola!")));
+                    }
+                };
+    info!("Db desconectada!, respuesta de Postgres: {:?}", disc_db);
+    let del_db = match sqlx::query(&format!("DROP DATABASE {}", db_name))
+                .execute(&admin_pool)
+                .await {
+                    Ok(result) => result,
+                    Err(e) => {
+                        error!("Algo salió mal borrando la base de datos: \n{}\n", e.to_string());
                         return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Error interno del backend. revisa la consola!")));
                     }
                 };
     //con esto se supone que la db fué eliminada.
-    info!("Db eliminada!, respuesta de Postgres: {:?}", query_res);
+    info!("Db eliminada!, respuesta de Postgres: {:?}", del_db);
 
     return (StatusCode::OK, Json(json!("Examen eliminado!")));
 } 
