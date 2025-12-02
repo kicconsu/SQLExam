@@ -334,7 +334,7 @@ export default function ViewExam() {
   }
 
   return (
-    <>
+    <div className="Exam-container">
       <h1 className="main-title">
         {editingName ? 'Editando Examen' : 'Ver Examen'}
         {isPublished && <span >✓ Publicado</span>}
@@ -419,6 +419,6 @@ export default function ViewExam() {
   </button>
 </div>
 
-    </>
+    </div>
   );
 }
