@@ -1,7 +1,7 @@
 use axum::{
-    extract::{DefaultBodyLimit},
+    extract::DefaultBodyLimit,
     http::{HeaderValue, Method},
-    routing::{get, post} // Para retornar Responses de las bases de datos
+    routing::{delete, get, post} // Para retornar Responses de las bases de datos
 };
 
 use tracing::info; // logging
@@ -48,6 +48,7 @@ async fn main() -> Result<(), sqlx::Error>{
         .route("/api/register", post(reg_user))
         .route("/api/exams", get(gather_exams))
         .route("/api/make-exam", post(make_exam).layer(DefaultBodyLimit::max(10240)))
+        .route("/api/delete-exam", delete(delete_exam))
         .route("/api/connect-room", get(connect_room))
         .route("/api/query", post(query_db))
         .route("/api/open-room", post(open_room))
