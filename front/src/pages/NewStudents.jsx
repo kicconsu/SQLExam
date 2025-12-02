@@ -29,7 +29,7 @@ export default function NewStudents() {
     };
 
     try {
-      const response = await fetch("http://localhost:3000/api/signup-direct", {
+      const response = await fetch("http://localhost:3000/api/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -114,8 +114,8 @@ export default function NewStudents() {
         <input
           type="password"
           placeholder="Inserte el código del estudiante"
-          value={formData.codigo}
-          onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
           disabled={loading}
         />
 
