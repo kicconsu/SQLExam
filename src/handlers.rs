@@ -384,7 +384,7 @@ pub async fn open_room(State(mut app_state):State<AppState>, heads:HeaderMap, Js
 
     app_state.db_pools.insert(db_name, pool);
 
-    info!("Examen realizado con exito.");
+    info!("Examen realizado con exito!\nEstado actual: {:?}", &app_state.db_pools);
 
     return (StatusCode::OK, Json(json!({
         "room_key":room_key
@@ -431,13 +431,16 @@ pub async fn close_room(State(mut app_state):State<AppState>, heads:HeaderMap, J
     };
 
     //como es un arreglo toca usar el primer elemento y tirar el get im pretty sure
-    let db = match search_body[0].get("nombre_db") {
+    let mut db = match search_body[0].get("nombre_db") {
         Some(name) => name.to_string(),
         None => {
             error!("nombre_db no estaba presente en la respuesta de roble");
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Problemas en el backend. Mira la consola...")));
         }
     };
+    db = db.replace("\"", "");
+
+    info!("tratando de remover db: {} del Estado.\nEstado: {:?}", &db, &app_state);
 
     //ya con el nombre de la db se puede buscar la pool asociada a esa db para cerrarla
     let pool = match app_state.db_pools.remove(&db) {

@@ -35,7 +35,7 @@ pub struct StudentQuery {
 
 //Con este modelo se guarda el estado de la aplicacion
 //Por ahora, el estado solo involucra un diccionario de la forma {"nombre_db": Pool}
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct AppState {
     pub db_pools: HashMap<String, Pool<Postgres>>
 }
