@@ -44,13 +44,13 @@ export default function StudentLogin() {
 
 
       if (response.ok) {
-        console.log("Login exitoso:", data);
+        console.log("Entrada existosa:", data);
         console.log("Status:", response.status);
 
         navigate('/examstudent');
       
       } else {
-        setError(data.message || "Error en el login");
+        setError(data.message || "Error al entrar en el examen");
         console.error("Error del servidor:", data);
       }
       
