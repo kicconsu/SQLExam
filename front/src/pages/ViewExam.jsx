@@ -21,7 +21,8 @@ export default function ViewExam() {
   const [isPublished, setIsPublished] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editingDb, setEditingDb] = useState(false);
-
+  const [preguntas, setPreguntas] = useState([]);
+  const [actual, setActual] = useState(0);
   const [nombreExamen, setNombreExamen] = useState('');
 
   // Cargar datos del examen al montar el componente

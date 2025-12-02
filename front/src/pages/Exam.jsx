@@ -109,7 +109,7 @@ export default function Examen() {
                     <button className="btn-primary" onClick={enviarExamen}>
                         Enviar Examen
                     </button>
-                    <button className="btn-secondary">
+                    <button className="btn-secondary" onClick>
                         Probar Consulta
                     </button>
                 </div>

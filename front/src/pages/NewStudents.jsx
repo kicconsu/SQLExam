@@ -24,11 +24,12 @@ export default function NewStudents() {
 
     const jsonData = {
       email: formData.email,
+      name: formData.name,
       password: formData.password
     };
 
     try {
-      const response = await fetch("http://localhost:3000/api/create-student", {
+      const response = await fetch("http://localhost:3000/api/signup-direct", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -95,11 +96,18 @@ export default function NewStudents() {
         Lorem ipsum dolor sit amet, consectetur adipiscing elit.
       </p>
  <form onSubmit={handleSubmit}>
-        <input
+  <input
           type="text"
           placeholder="Inserte el correo del estudiante"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          disabled={loading}
+        />
+        <input
+          type="text"
+          placeholder="Inserte el nombre del estudiante"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           disabled={loading}
         />
 
