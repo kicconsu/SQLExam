@@ -68,7 +68,7 @@ export default function NewStudents() {
         setError(data.message || "Error en el login");
         console.error("Error del servidor:", data);
         alert('Error al crear el estudiante');
-        navigate('/homeprofessor'); ///PROVISIONAL BORRAR DESPUJES
+        
       }
       
     } catch (err) {

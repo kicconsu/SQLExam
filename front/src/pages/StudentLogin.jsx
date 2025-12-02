@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import GetBack from '../components/getback.jsx'
 import ButtonRedirect from '../components/buttonredirect.jsx'
 
-
 export default function StudentLogin() {
   const navigate = useNavigate();
   const [isLoged, setIsLoged] = useState(false);
@@ -12,7 +11,7 @@ export default function StudentLogin() {
     codigo: ""
   });
   const [formData1, setFormData1] = useState({
-    usuario: "",
+    Email: "",
     password: ""
   });
   const [loading, setLoading] = useState(false);
@@ -29,7 +28,7 @@ export default function StudentLogin() {
     };
 
     try {
-      const response = await fetch(`http://localhost:3000/api/connect-room/${formData.codigo}`, { //esta direccion puede varias confirma plis
+      const response = await fetch(`http://localhost:3000/api/connect-room?codigo=${formData.codigo}`, { //esta direccion puede varias confirma plis
         method: "GET",
         headers: {
           "Content-Type": "application/json"
@@ -47,8 +46,6 @@ export default function StudentLogin() {
       if (response.ok) {
         console.log("Login exitoso:", data);
         console.log("Status:", response.status);
-  
-        
 
         navigate('/examstudent');
       
@@ -65,18 +62,15 @@ export default function StudentLogin() {
     }
   }
 async function handleSubmitLogin(e) {
-  const navigate = useNavigate();
-  const [formData1, setFormData1] = useState({
-    usuario: "",
-    password: ""
-  });
-    e.preventDefault();
+   e.preventDefault();
+  
+  
     setLoading(true);
     setError(null);
 
     const jsonData = {
-      usuario: formData.usuario,
-      password: formData.password
+      email: formData1.Email,
+      password: formData1.password
     };
 
     try {
@@ -132,12 +126,12 @@ async function handleSubmitLogin(e) {
         Ingrese el usuario y contraseña proporcionados por su profesor       </p>
  <form onSubmit={handleSubmitLogin}>
        <input
-          type="username"
-          placeholder="Usuario"
-          value={formData1.usuario}
-          onChange={(e) => setFormData1({ ...formData1, usuario: e.target.value })}
+          type="text"
+          placeholder="E-mail"
+          value={formData1.Email}
+          onChange={(e) => setFormData1({ ...formData1, Email: e.target.value })}
           disabled={loading}
-        />
+          required />
 
         <input
           type="password"
