@@ -133,7 +133,7 @@ async function handleSubmitLogin(e) {
       <p className="StudentLogin-paragraph">
         Bienvenido al portal de estudiantes. Aquí podrás ingresar para presentar los exámenes asignados por tu profesor.
       </p>
- <form onSubmit={handleSubmit}>
+ <form className="student-form" onSubmit={handleSubmitLogin}>
         <input
           type="text"
           placeholder="Email"
@@ -150,12 +150,12 @@ async function handleSubmitLogin(e) {
           disabled={loading}
         />
 
-        <button type="submit" disabled={loading}>
+        <button type="submit" className='btn' disabled={loading}>
           {loading ? "Cargando..." : "Log in"}
         </button>
 
       </form>
-       {isLoged && <span >✓ Usted esta logeado </span>}
+       {isLoged && <div style={{ color: 'green', marginTop: 8 }}>✓ Usted está logeado</div>}
     <p className="StudentLogin-paragraph">
          Ingrese el codigo del examen proporcionado por su profesor       </p>
  <form onSubmit={handleSubmitCode}>

@@ -1,0 +1,104 @@
+/* Centrar todo el contenido */
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", sans-serif;
+}
+
+.main-title {
+  text-align: center;
+  font-size: 2.8rem;
+  margin-top: 40px;
+}
+
+/* Contenedor general */
+form, h2 {
+  width: 80%;
+  max-width: 900px;
+  margin: auto;
+  display: block;
+}
+
+/* Label */
+.mi-label {
+  font-weight: bold;
+  font-size: 1.1rem;
+  text-align: center;    
+}
+
+/* Input nombre del examen */
+.Project-Name {
+  padding: 3px;
+  font-size: 1rem;
+  width: 100%;
+  border: 2px solid #d0d0d0;
+  border-radius: 6px;
+  text-align: center;
+}
+
+/* Centrar sección de preguntas */
+h2 {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 1.9rem;
+}
+
+/* === BOTONES === */
+
+.buttons-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 25px;
+  margin-top: 40px;
+  flex-wrap: wrap;
+}
+
+/* Estilo general para todos los botones */
+.btn {
+  padding: 12px 25px;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  border: none;
+  cursor: pointer;
+  transition: 0.25s;
+  font-weight: 600;
+}
+
+/* Abrir examen */
+.open-btn {
+  background: #007bff;
+  color: white;
+}
+.open-btn:disabled {
+  background: #9ec7ff;
+  cursor: not-allowed;
+}
+
+/* Cerrar examen */
+.close-btn {
+  background: #ffc107;
+  color: black;
+}
+.close-btn:disabled {
+  background: #ffe9a6;
+  cursor: not-allowed;
+}
+
+/* Ver resultados */
+.results-btn {
+  background: #28a745;
+  color: white;
+}
+.results-btn:hover {
+  background: #248e3d;
+}
+
+/* Volver */
+.back-btn {
+  background: #343a40;
+  color: white;
+}
+.back-btn:hover {
+  background: #23272b;
+}
