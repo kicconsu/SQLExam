@@ -261,10 +261,10 @@ export default function ViewExam() {
         setIsPublished(true);
         alert('¡Examen publicado! Código del examen: ' + data.room_key);
 
-        navigate('/homeprofessor');
+        
       } else {
         alert('Error al publicar el examen');
-        navigate('/homeprofessor'); ///PROVISIONAL BORRAR DESPUJES
+        
       }
     } catch (err) {
       console.error('❌ Error:', err);
@@ -297,10 +297,10 @@ export default function ViewExam() {
       if (response.ok) {
         setIsPublished(false);
         alert('Examen cerrado');
-        navigate('/homeprofessor');
+        
       } else {
         alert('Error al despublicar el examen');
-        navigate('/homeprofessor'); ///PROVISIONAL BORRAR DESPUJES  
+          
       }
     } catch (err) {
       console.error('❌ Error:', err);
@@ -357,11 +357,11 @@ export default function ViewExam() {
         {/* Base de datos */}
         <div style={{ marginTop: '20px' }}>
           <label htmlFor="file-upload">
-            📁 Base de datos: {dbFileName}
+            📁 Base de datos: {}
           </label>
           
           {editingDb && (
-            <input 
+            <input dbFileName
               id="file-upload"
               type="file"
               accept=".sql"
