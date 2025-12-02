@@ -19,12 +19,13 @@ use serde_json::{Value, json}; // Para manejar JSON arbitrario
 use tracing::{info, error};
 
 use crate::aux_fns::*; // constructores de responses, constructores de peticiones...
-use crate::models::{AppState, ExamData, ExamMakerResponse, StudentQuery}; // tipado fuerte para los examenes para facilitar validaciones
+use crate::models::{AppState, ExamData, ExamMakerResponse, PreguntaRow, RoomKeyRow, StudentQuery}; // tipado fuerte para los examenes para facilitar validaciones
 
 //la mayoria de los handlers se parecen, ya q solo pasan la peticion tal cual a ROBLE.
 //make-exam es muy distinto al necesitar mandar varias peticiones a ROBLE y ademas hablar con posgres.
 
 //Contraseña de test2: aa22A-----
+//Contraseña de test3: -----222AAb
 //POST api/login: tratar de logear usuario en ROBLE
 pub async fn log_user(Json(payload):Json<Value>) -> impl IntoResponse {
     info!("\nPOST SQLExam/login detectado, credenciales:\n{:?}", &payload);
@@ -77,6 +78,10 @@ pub async fn gather_exams(Query(payload):Query<Vec<(String, String)>>, heads:Hea
     info!("STATUS devuelto: {:?}", &send_res.status());
 
     send_res
+}
+
+pub async fn gather_questions(Query(payload):Query<Vec<(String, String)>>, heads:HeaderMap) -> impl IntoResponse {
+    
 }
 
 /*
@@ -234,13 +239,14 @@ pub async fn make_exam(State(app_state):State<AppState>, heads:HeaderMap, mut mu
     (StatusCode::MULTI_STATUS, Json(response_body))
 }
 
-//borrar un examen involucra quitarlo de roble y quitar su base de datos de posgres con un par de consultas
+//borrar un examen involucra quitarlo a él y sus preguntas de roble y quitar su base de datos de posgres con un par de consultas
 //espera el nombre del examen en el body:
 /*
     {
         "nombre_examen":"examen de JOIN"
     }
 */
+//TODO: deberias validar q ninguna base de datos tenga el mismo nombre de la base de datos maestra lol
 //DELETE api/delete-exam
 pub async fn delete_exam(State(app_state):State<AppState>, heads:HeaderMap, Json(payload): Json<Value>) -> impl IntoResponse {
     info!("api/delete-exam detectado... tratando de remover el examen de la tabla Exams");
@@ -261,7 +267,7 @@ pub async fn delete_exam(State(app_state):State<AppState>, heads:HeaderMap, Json
 
     let acc_key = token_from_heads(heads);
 
-    let delete_response = delete_from("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/delete", body, acc_key)
+    let delete_response = delete_from("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/delete", body.clone(), acc_key.clone())
         .await;
     if !delete_response.status().is_success() {
         let res_body = delete_response.text().await.unwrap();
@@ -280,7 +286,20 @@ pub async fn delete_exam(State(app_state):State<AppState>, heads:HeaderMap, Json
     };
 
     info!("respuesta de roble obtenida: {}", delete_body);
-    
+    info!("examen borrado de roble, tratando de eliminar preguntas...");
+
+    let del_questions_response = delete_from("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/delete", body, acc_key)
+        .await;
+    if !del_questions_response.status().is_success() {
+        let res_body = del_questions_response.text().await.unwrap();
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+            "ERROR":"Roble no aceptó la eliminación de las preguntas.",
+            "msg_roble":res_body
+        })));
+    }
+
+    info!("tratando de ");
+
     let db_name:String = match delete_body.get("db_asociada") {
         Some(name) => name.to_string().replace(".sql", "").replace("\"", ""),
         None => {
@@ -289,7 +308,7 @@ pub async fn delete_exam(State(app_state):State<AppState>, heads:HeaderMap, Json
         }
     };
 
-    info!("examen borrado de ROBLE, tratando de eliminar db {} de Postgres...", db_name);
+    info!("Tratando de eliminar db {} de Postgres...", db_name);
 
     let admin_pool:PgPool;
     {
@@ -337,7 +356,7 @@ pub async fn delete_exam(State(app_state):State<AppState>, heads:HeaderMap, Json
 } 
 
 //espera el código de acceso como un parametro
-//regresa el nombre de la base de datos sobre la cual se harán las consultas
+//regresa el nombre de la base de datos sobre la cual se harán las consultas y la info del examen {numPreg: , enunciados: [...]}
 //GET api/connect-room
 pub async fn connect_room(Query(payload):Query<Vec<(String, String)>>, heads:HeaderMap) -> impl IntoResponse {
     let mut params:Vec<(String, String)> = [("tableName".to_string(), "RoomKeys".to_string())].to_vec();
@@ -348,13 +367,43 @@ pub async fn connect_room(Query(payload):Query<Vec<(String, String)>>, heads:Hea
     info!("\nGET SQLExam/exams detectado,\nparametros: {:?}\naccess_token: {:?}", &params, &acc_key);
 
     let response =
+        get_queried("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/read", params, acc_key.clone())
+        .await;
+    
+    let rk_body = match response.json::<Vec<RoomKeyRow>>().await {
+        Ok(bod) => bod,
+        Err(er) => {
+            error!("No se pudo des-serializar la respuesta roble como vector de roomkeyrow. lo definiste mal papu :v\n{}", er.to_string());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("lol revisa la consola")));
+        }
+    };
+
+    let params:Vec<(String, String)> = [("tableName".to_string(), "Preguntas".to_string()),
+                                        ("nombre_examen".to_string(), rk_body[0].nombre_examen.clone())].to_vec();
+
+    let response =
         get_queried("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/read", params, acc_key)
         .await;
-    let send_res = build_ax_response(response).await;
+    let preguntas_body = match response.json::<Vec<PreguntaRow>>().await {
+        Ok(bod) => bod,
+        Err(er) => {
+            error!("No se pudo des-serializar la respuesta roble como vector de preguntas. lo definiste mal papu :v\n{}", er.to_string());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("lol revisa la consola")));
+        }
+    };
 
-    info!("STATUS devuelto: {:?}", &send_res.status());
+    let num_preg = preguntas_body.len();
+    let vec_nunciados:Vec<String> = preguntas_body.iter().map(|preg| {
+        preg.enunciado.clone()
+    }).collect();
 
-    send_res
+    return (StatusCode::OK, Json(json!({
+        "nombreDb": rk_body[0].nombre_db,
+        "infoExamen": {
+            "numPreg":num_preg,
+            "enunciados": vec_nunciados
+        }
+    })));
 }
 
 
