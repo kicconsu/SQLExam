@@ -359,19 +359,29 @@ pub async fn delete_exam(State(app_state):State<AppState>, heads:HeaderMap, Json
 //regresa el nombre de la base de datos sobre la cual se harán las consultas y la info del examen {numPreg: , enunciados: [...]}
 //GET api/connect-room
 pub async fn connect_room(Query(payload):Query<Vec<(String, String)>>, heads:HeaderMap) -> impl IntoResponse {
+    info!("GET api/connect-room detectado");
+
     let mut params:Vec<(String, String)> = [("tableName".to_string(), "RoomKeys".to_string())].to_vec();
     params.append(&mut payload.clone());
-
     let acc_key:String = token_from_heads(heads);
 
-    info!("\nGET SQLExam/exams detectado,\nparametros: {:?}\naccess_token: {:?}", &params, &acc_key);
+    info!("parametros para buscar en RoomKey: \n{:?}\naccess_token: {:?}", params, acc_key);
 
     let response =
         get_queried("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/read", params, acc_key.clone())
         .await;
     
+    if !response.status().is_success() {
+        error!("Error en la busqueda de roble... respuesta devuelta al front.");
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(response.json().await.unwrap()));
+    }
+
+    info!("respuesta de roble... {:?}", &response);
+
     let rk_body = match response.json::<Vec<RoomKeyRow>>().await {
-        Ok(bod) => bod,
+        Ok(bod) => {
+            bod
+        },
         Err(er) => {
             error!("No se pudo des-serializar la respuesta roble como vector de roomkeyrow. lo definiste mal papu :v\n{}", er.to_string());
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("lol revisa la consola")));
@@ -381,9 +391,19 @@ pub async fn connect_room(Query(payload):Query<Vec<(String, String)>>, heads:Hea
     let params:Vec<(String, String)> = [("tableName".to_string(), "Preguntas".to_string()),
                                         ("nombre_examen".to_string(), rk_body[0].nombre_examen.clone())].to_vec();
 
+    info!("roomkey extraido correctamente, parametros para Preguntas:\n{:?}", &params);
+
     let response =
         get_queried("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/read", params, acc_key)
         .await;
+
+    if !response.status().is_success() {
+        error!("Error en la busqueda de roble... respuesta devuelta al front.");
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(response.json().await.unwrap()));
+    }
+
+    info!("respuesta de roble... {:?}", &response);    
+
     let preguntas_body = match response.json::<Vec<PreguntaRow>>().await {
         Ok(bod) => bod,
         Err(er) => {
@@ -391,6 +411,8 @@ pub async fn connect_room(Query(payload):Query<Vec<(String, String)>>, heads:Hea
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("lol revisa la consola")));
         }
     };
+
+    info!("preguntas extraidas exitosamente, mandando respuesta!");
 
     let num_preg = preguntas_body.len();
     let vec_nunciados:Vec<String> = preguntas_body.iter().map(|preg| {
