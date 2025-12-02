@@ -357,7 +357,7 @@ export default function ViewExam() {
         {/* Base de datos */}
         <div style={{ marginTop: '20px' }}>
           <label htmlFor="file-upload">
-            📁 Base de datos: {}
+            📁 Base de datos: {dbFileName}
           </label>
           
           {editingDb && (
@@ -376,55 +376,54 @@ export default function ViewExam() {
       </form>
 
       
-      <h2 style={{ marginTop: '30px' }}>Preguntas </h2>
     
 
       {/* Lista de preguntas */}
-      <h2>Lista de Preguntas ({list.length})</h2>
-      <ul>
-        {list.map((item, index) => (
-          <li key={index}>
-            <label>
-              <span className="question-item">
-                {index + 1}. Pregunta: {item.enunciado}
-              </span>
-              <span className="answer-item">
-                Respuesta: {item.consulta_esperada}
-              </span>
-            </label>
+      <h2>Preguntas ({list.length})</h2>
+      
 
-            
-          </li>
-        ))}
-      </ul>
-
-      {/* Botones */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '10px', 
-        marginTop: '30px',
-        flexWrap: 'wrap' 
-      }}>
-       
-
-        {isPublished ? (
-          <button 
-            onClick={handleUnpublish}
-            disabled={saving}
            
-          >
-            📤 Cerrar Examen
-          </button>
-        ) : (
-          <button 
-            onClick={handlePublish}
-            disabled={saving}
-            
-          >
-            📢 Abrir Examen
-          </button>
-        )}
+     {/* Botones */}
+<div style={{ 
+  display: 'flex', 
+  gap: '10px', 
+  marginTop: '30px',
+  flexWrap: 'wrap' 
+}}>
+  {/* Botón Abrir - deshabilitado si ya está publicado */}
+  <button 
+    onClick={handlePublish}
+    disabled={saving || isPublished} // ← Deshabilitado si está publicado
+    style={{
+      backgroundColor: isPublished ? '#cccccc' : '#007bff',
+      color: 'white',
+      padding: '10px 20px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: (saving || isPublished) ? 'not-allowed' : 'pointer',
+      opacity: isPublished ? 0.5 : 1
+    }}
+  >
+    📢 Abrir Examen
+  </button>
 
+  {/* Botón Cerrar - deshabilitado si NO está publicado */}
+  <button 
+    onClick={handleUnpublish}
+    disabled={saving || !isPublished} // ← Deshabilitado si NO está publicado
+    style={{
+      backgroundColor: !isPublished ? '#cccccc' : '#ffc107',
+      color: !isPublished ? '#666' : 'black',
+      padding: '10px 20px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: (saving || !isPublished) ? 'not-allowed' : 'pointer',
+      opacity: !isPublished ? 0.5 : 1
+    }}
+  >
+    📤 Cerrar Examen
+  </button>
+        
         <button 
           onClick={handleViewResults}
           disabled={saving}
