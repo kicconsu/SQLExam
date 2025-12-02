@@ -40,9 +40,10 @@ export default function ExamStudent() {
     }
     
     try {
-      const response = await fetch(`http://localhost:3000/api/exam-info/${roomCode}`, {
+      const response = await fetch(`http://localhost:3000/api/connect-room?llave=${roomCode}`, {
         method: "GET",
         headers: {
+          "Authorization": `Bearer ${localStorage.getItem('token')}`,
           "Content-Type": "application/json"
         }
       });
