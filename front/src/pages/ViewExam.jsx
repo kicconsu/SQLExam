@@ -246,7 +246,7 @@ export default function ViewExam() {
         },
         body: JSON.stringify({ nombre_examen: projectName, nombre_db: dbFileName.split(".")[0] })
       });
-      //GUARDAR CODIGO DE SALA EN LOCAL STORAGE FALTA ESO 
+      
       const data = await response.json();
       localStorage.setItem('roomCode', data.room_key);
 
