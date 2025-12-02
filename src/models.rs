@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use serde::{Deserialize, Serialize};
 use sqlx::{Postgres, pool::Pool};
@@ -37,5 +37,5 @@ pub struct StudentQuery {
 //Por ahora, el estado solo involucra un diccionario de la forma {"nombre_db": Pool}
 #[derive(Default, Clone, Debug)]
 pub struct AppState {
-    pub db_pools: HashMap<String, Pool<Postgres>>
+    pub db_pools: Arc<Mutex<HashMap<String, Pool<Postgres>>>>
 }

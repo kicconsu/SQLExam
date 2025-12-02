@@ -28,13 +28,16 @@ async fn main() -> Result<(), sqlx::Error>{
     //Setup de la conexión con posgreSQL
     dotenv().ok(); //En el .env se guardan variables como la direccion a la db_admin
 
-    let mut global_state = AppState::default();
+    let global_state = AppState::default();
 
     let admin_db_url = env::var("ADMIN_DB_URL")
         .expect("No se encontró ADMIN_DB_URL en el .env");
     let admin_pool = PgPool::connect(&admin_db_url).await?;
 
-    global_state.db_pools.insert("admin".to_string(), admin_pool);
+    {
+        let mut state_pools = global_state.db_pools.lock().unwrap();
+        state_pools.insert("admin".to_string(), admin_pool);
+    }
 
     info!("Backend conectado con posgreSQL!");
 
