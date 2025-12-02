@@ -426,14 +426,6 @@ export default function ViewExam() {
   </button>
         
         <button 
-          onClick={handleViewResults}
-          disabled={saving}
-          
-        >
-          📊 Ver Resultados
-        </button>
-
-        <button 
           onClick={handleCancel}
           disabled={saving}
           
