@@ -233,6 +233,26 @@ pub async fn make_exam(State(app_state):State<AppState>, heads:HeaderMap, mut mu
     (StatusCode::MULTI_STATUS, Json(response_body))
 }
 
+//borrar un examen involucra quitarlo de roble y quitar su base de datos de posgres con un par de consultas
+//espera el nombre del examen en el body:
+/*
+    {
+        "nombre_examen":"examen de JOIN"
+    }
+*/
+//DELETE api/delete-exam
+pub async fn delete_exam(heads:HeaderMap, Json(payload): Json<Value>) -> impl IntoResponse {
+    let nombre_examen = match payload.get("nombre_examen") {
+        Some(nombre) => nombre.to_string().replace("\"", ""),
+        None => {
+            error!("No se encontró el campo 'nombre_examen' en la petición. Hazlo bien pls!!!!!!!!");
+            return (StatusCode::BAD_REQUEST, Json(json!("El cuerpo de la petición no parece poseer el campo 'nombre_examen'")));
+        }
+    };
+
+    return (StatusCode::OK, Json(json!("Ok")));
+} 
+
 //espera el código de acceso como un parametro
 //regresa el nombre de la base de datos sobre la cual se harán las consultas
 //GET api/connect-room

@@ -8,6 +8,7 @@ import HomePageprofessor from './pages/HomePageProfessor.jsx'
 import ViewExam from './pages/ViewExam.jsx'
 import ProfessorExam from './pages/ProfessorExam.jsx'
 import NewStudents from './pages/NewStudents.jsx'
+import Exam from './pages/Exam.jsx'
 
 import ExamStudent from './pages/ExamStudent.jsx'
 import { BrowserRouter, Routes, Route} from 'react-router-dom'
@@ -24,6 +25,7 @@ createRoot(document.getElementById('root')).render(
         <Route path = "ProfessorExam" element ={ <ProfessorExam />} />
         <Route path="/viewExam/:examId" element={<ViewExam />} />
         <Route path= "/NewStudents" element ={ <NewStudents />} />
+        <Route path= "/exam" element ={ <Exam />} />
         
         <Route path= "/examstudent" element ={ <ExamStudent />} /> //debe estar linkeado con su id 
 
