@@ -36,6 +36,18 @@ pub async fn get_queried(url:&str, params:Vec<(String, String)>, acc_key:String)
     response
 }
 
+pub async fn delete_from(url:&str, body:Value, acc_key:String) -> reqwest::Response {
+    let client = reqwest::Client::new();
+    let response = client
+        .delete(url.to_string())
+        .header("Authorization", format!("{}", acc_key))
+        .json(&body)
+        .send()
+        .await
+        .unwrap();
+    response
+}
+
 //Funcion auxiliar para construir una response de Axum a partir de una de reqwest. ni idea si hay mejor manera de hacer esto lol
 //TODO: Quizas pasar los headers iterativamente? si es q hace falta pues
 pub async fn build_ax_response(reqw_response:reqwest::Response) -> Response<Body> {

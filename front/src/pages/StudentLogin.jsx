@@ -7,29 +7,83 @@ import ButtonRedirect from '../components/buttonredirect.jsx'
 
 export default function StudentLogin() {
   const navigate = useNavigate();
+  const [isLoged, setIsLoged] = useState(false);
   const [formData, setFormData] = useState({
-    email: "",
     codigo: ""
   });
-  
+  const [formData1, setFormData1] = useState({
+    usuario: "",
+    password: ""
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [status, setStatus] = useState(null);
 
-  async function handleSubmit(e) {
+  async function handleSubmitCode(e) {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     const jsonData = {
-      email: formData.email,
       codigo: formData.codigo
     };
 
     try {
-      const response = await fetch("http://localhost:3000/api/login", { //esta direccion puede varias confirma plis
+      const response = await fetch(`http://localhost:3000/api/connect-room/${formData.codigo}`, { //esta direccion puede varias confirma plis
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        
+      });
+
+      // Capturar el status
+      setStatus(response.status);
+      
+      const data = await response.json();
+      console.log("Respuesta del backend:", data);
+
+
+      if (response.ok) {
+        console.log("Login exitoso:", data);
+        console.log("Status:", response.status);
+  
+        
+
+        navigate('/examstudent');
+      
+      } else {
+        setError(data.message || "Error en el login");
+        console.error("Error del servidor:", data);
+      }
+      
+    } catch (err) {
+      console.error("Error de red:", err);
+      setError("Error de conexión con el servidor");
+    } finally {
+      setLoading(false);
+    }
+  }
+async function handleSubmitLogin(e) {
+  const navigate = useNavigate();
+  const [formData1, setFormData1] = useState({
+    usuario: "",
+    password: ""
+  });
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const jsonData = {
+      usuario: formData.usuario,
+      password: formData.password
+    };
+
+    try {
+      const response = await fetch("http://localhost:3000/api/login", { 
         method: "POST",
         headers: {
+          
           "Content-Type": "application/json"
         },
         body: JSON.stringify(jsonData)
@@ -45,6 +99,7 @@ export default function StudentLogin() {
       if (response.ok) {
         console.log("Login exitoso:", data);
         console.log("Status:", response.status);
+        setIsLoged(true);
   
         // Guardar token y datos (No se como funcione para estudiantes)
         localStorage.setItem("token", data.accessToken);
@@ -53,7 +108,7 @@ export default function StudentLogin() {
 
         console.log("Datos guardados en localStorage.");
 
-        navigate('/homestudent');
+        
       
       } else {
         setError(data.message || "Error en el login");
@@ -67,7 +122,6 @@ export default function StudentLogin() {
       setLoading(false);
     }
   }
-
   return (
     <div className='login-container'>
       <h1 className="main-title">
@@ -90,9 +144,9 @@ export default function StudentLogin() {
 
         <input
           type="password"
-          placeholder="Codigo"
-          value={formData.codigo}
-          onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
+          placeholder="Contraseña"
+          value={formData1.password}
+          onChange={(e) => setFormData1({ ...formData1, password: e.target.value })}
           disabled={loading}
         />
 
@@ -101,10 +155,26 @@ export default function StudentLogin() {
         </button>
 
       </form>
+       {isLoged && <span >✓ Usted esta logeado </span>}
+    <p className="StudentLogin-paragraph">
+         Ingrese el codigo del examen proporcionado por su profesor       </p>
+ <form onSubmit={handleSubmitCode}>
+     
+        <input
+          type="password"
+          placeholder="Código del examen"
+          value={formData.codigo}
+          onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
+          disabled={loading}
+        />
 
+        <button type="submit" disabled={!isLoged}>
+          {loading ? "Cargando..." : "Ingresar al examen"}
+        </button>
+
+      </form>
       {error && <p style={{color: 'red'}}>{error}</p>}
       {status && <p>Status: {status}</p>}
-
       <p2 className="StudentLogin-paragraph2">
         Asegúrate de tener una conexión estable antes de comenzar tu evaluación.
      </p2>

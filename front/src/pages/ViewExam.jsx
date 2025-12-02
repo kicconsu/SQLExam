@@ -21,7 +21,8 @@ export default function ViewExam() {
   const [isPublished, setIsPublished] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editingDb, setEditingDb] = useState(false);
-
+  const [preguntas, setPreguntas] = useState([]);
+  const [actual, setActual] = useState(0);
   const [nombreExamen, setNombreExamen] = useState('');
 
   // Cargar datos del examen al montar el componente
@@ -237,16 +238,19 @@ export default function ViewExam() {
       const token = localStorage.getItem('token');
       const refreshToken = localStorage.getItem('refreshToken');
 
-      const response = await fetch('http://localhost:3000/api/publish-exam', {
+      const response = await fetch('http://localhost:3000/api/open-room', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'X-Refresh-Token': refreshToken,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ nombre_examen: projectName })
+        body: JSON.stringify({ nombre_examen: projectName, nombre_db: dbFileName.split(".")[0] })
       });
-      //GUARDAR CODIGO DE SALA EN LOCAL STORAGE FALTA ESO 
+      
+      const data = await response.json();
+      localStorage.setItem('roomCode', data.room_key);
+
       if (response.status === 401) {
         localStorage.clear();
         alert('Tu sesión ha expirado');
@@ -256,11 +260,12 @@ export default function ViewExam() {
 
       if (response.ok) {
         setIsPublished(true);
-        alert('¡Examen publicado!');
-        navigate('/homeprofessor');
+        alert('¡Examen publicado! Código del examen: ' + data.room_key);
+
+        
       } else {
         alert('Error al publicar el examen');
-        navigate('/homeprofessor'); ///PROVISIONAL BORRAR DESPUJES
+        
       }
     } catch (err) {
       console.error('❌ Error:', err);
@@ -273,7 +278,7 @@ export default function ViewExam() {
       const token = localStorage.getItem('token');
       const refreshToken = localStorage.getItem('refreshToken');
 
-      const response = await fetch('http://localhost:3000/api/unpublish-exam', {
+      const response = await fetch('http://localhost:3000/api/close-room', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -292,11 +297,11 @@ export default function ViewExam() {
 
       if (response.ok) {
         setIsPublished(false);
-        alert('Examen despublicado');
-        navigate('/homeprofessor');
+        alert('Examen cerrado');
+        
       } else {
         alert('Error al despublicar el examen');
-        navigate('/homeprofessor'); ///PROVISIONAL BORRAR DESPUJES  
+          
       }
     } catch (err) {
       console.error('❌ Error:', err);
@@ -357,7 +362,7 @@ export default function ViewExam() {
           </label>
           
           {editingDb && (
-            <input 
+            <input dbFileName
               id="file-upload"
               type="file"
               accept=".sql"
@@ -372,55 +377,54 @@ export default function ViewExam() {
       </form>
 
       
-      <h2 style={{ marginTop: '30px' }}>Preguntas </h2>
     
 
       {/* Lista de preguntas */}
-      <h2>Lista de Preguntas ({list.length})</h2>
-      <ul>
-        {list.map((item, index) => (
-          <li key={index}>
-            <label>
-              <span className="question-item">
-                {index + 1}. Pregunta: {item.enunciado}
-              </span>
-              <span className="answer-item">
-                Respuesta: {item.consulta_esperada}
-              </span>
-            </label>
+      <h2>Preguntas ({list.length})</h2>
+      
 
-            
-          </li>
-        ))}
-      </ul>
-
-      {/* Botones */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '10px', 
-        marginTop: '30px',
-        flexWrap: 'wrap' 
-      }}>
-       
-
-        {isPublished ? (
-          <button 
-            onClick={handleUnpublish}
-            disabled={saving}
            
-          >
-            📤 Despublicar Examen
-          </button>
-        ) : (
-          <button 
-            onClick={handlePublish}
-            disabled={saving}
-            
-          >
-            📢 Publicar Examen
-          </button>
-        )}
+     {/* Botones */}
+<div style={{ 
+  display: 'flex', 
+  gap: '10px', 
+  marginTop: '30px',
+  flexWrap: 'wrap' 
+}}>
+  {/* Botón Abrir - deshabilitado si ya está publicado */}
+  <button 
+    onClick={handlePublish}
+    disabled={saving || isPublished} // ← Deshabilitado si está publicado
+    style={{
+      backgroundColor: isPublished ? '#cccccc' : '#007bff',
+      color: 'white',
+      padding: '10px 20px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: (saving || isPublished) ? 'not-allowed' : 'pointer',
+      opacity: isPublished ? 0.5 : 1
+    }}
+  >
+    📢 Abrir Examen
+  </button>
 
+  {/* Botón Cerrar - deshabilitado si NO está publicado */}
+  <button 
+    onClick={handleUnpublish}
+    disabled={saving || !isPublished} // ← Deshabilitado si NO está publicado
+    style={{
+      backgroundColor: !isPublished ? '#cccccc' : '#ffc107',
+      color: !isPublished ? '#666' : 'black',
+      padding: '10px 20px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: (saving || !isPublished) ? 'not-allowed' : 'pointer',
+      opacity: !isPublished ? 0.5 : 1
+    }}
+  >
+    📤 Cerrar Examen
+  </button>
+        
         <button 
           onClick={handleViewResults}
           disabled={saving}

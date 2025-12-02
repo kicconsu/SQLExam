@@ -4,61 +4,193 @@ import ProfessorLogin from "./ProfessorLogin";
 import { useNavigate } from 'react-router-dom';
 export default function ExamStudent() {
   const navigate = useNavigate();
-  const [projectName, setProjectName] = useState('');
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [list, setList] = useState([]);
-  const [editbtn, setEditbtn] = useState(false);
-  const [profe, setProfe] = useState(null);
-  const [loading, setLoading] = useState(false);
+   const [examData, setExamData] = useState(null);
+  const [preguntas, setPreguntas] = useState([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [respuestas, setRespuestas] = useState({}); // Guarda las respuestas del estudiante
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [editingIndex, setEditingIndex] = useState(null);
-  const [dbAsociada, setDbAsociada] = useState(null); 
-  const [dbFileName, setDbFileName] = useState(''); 
+  const [examFinished, setExamFinished] = useState(false);
 
   
-  function addQuestion(e) {
+  useEffect(() => {
+    cargarExamen();
+  }, []);
+  
+  async function handleExam(e) {
+    
     e.preventDefault(); // evita que el form haga refresh
+   
 
-    if (question.trim() === '' || answer.trim() === '') {
-      alert("Please write question and answer");
-        
+    const roomCode = localStorage.getItem("roomCode");
+    if (!roomCode) {
+      console.error("No hay roomCode almacenado");
       return;
     }
-    const newItem = { 
-        enunciado: question,
-        consulta_esperada: answer
-      };
-
-    setList([...list, newItem]);
-
-    setQuestion("");
-    setAnswer("");
-  }
-  function editItem(index) {
-    setEditingIndex(index); 
-  setQuestion(list[index].enunciado);
-  setAnswer(list[index].consulta_esperada);
-}
-  function deleteItem(index) {
-    setList(list.filter((_, i) => i !== index));
-} 
- function handleFileChange(e) {
-    const file = e.target.files[0];
     
-    if (file) {
-      // Validar que sea un archivo .bak
-      if (!file.name.endsWith('.sql')) {
-        alert('Por favor selecciona un archivo .sql');
-        e.target.value = ''; // Limpiar el input
-        return;
+    try {
+      const response = await fetch(`http://localhost:3000/api/exam-info/${roomCode}`, { //esta direccion puede varias confirma plis
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        
+      });
+
+      // Capturar el status
+      setStatus(response.status);
+      
+      const data = await response.json();
+      console.log("Respuesta del backend:", data);
+
+
+      if (response.ok) {
+        
+  
+         // Extrae las preguntas del objeto data
+        // Ajusta según la estructura que devuelva tu backend
+        const preguntasArray = data.preguntas || data.Preguntas || [];
+        console.log("❓ Preguntas extraídas:", preguntasArray);
+setPreguntas(preguntasArray);
+        
+        // Inicializar respuestas vacías para cada pregunta
+        const respuestasIniciales = {};
+        preguntasArray.forEach((_, index) => {
+          respuestasIniciales[index] = "";
+        });
+        setRespuestas(respuestasIniciales)
+        
+      
+      } else {
+       
+        console.error("Error del servidor:", data);
       }
       
-      setDbAsociada(file);
-      setDbFileName(file.name);
-      console.log(' Archivo seleccionado:', file.name);
+    } catch (err) {
+      console.error("Error de red:", err);
+      setError("Error de conexión con el servidor");
+    } finally {
+      setLoading(false);
     }
-  } 
+  
+    
+  }
+   function handleRespuestaChange(value) {
+    setRespuestas({
+      ...respuestas,
+      [currentQuestionIndex]: value
+    });
+  }
+
+  // Ir a la siguiente pregunta
+  function handleSiguiente() {
+    if (currentQuestionIndex < preguntas.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  }
+
+  // Ir a la pregunta anterior
+  function handleAnterior() {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  }
+  // Enviar examen completo
+  async function handleEnviarExamen() {
+    if (window.confirm('¿Estás seguro de enviar el examen? No podrás modificar tus respuestas.')) {
+      setLoading(true);
+      
+      try {
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user'));
+        const roomCode = localStorage.getItem('roomCode');
+
+        // Formatear respuestas para enviar al backend
+        const respuestasFormateadas = preguntas.map((pregunta, index) => ({
+          numero_pregunta: index + 1,
+          enunciado: pregunta.enunciado,
+          respuesta_estudiante: respuestas[index],
+          consulta_esperada: pregunta.consulta_esperada
+        }));
+
+        const payload = {
+          estudiante: user?.name,
+          roomCode: roomCode,
+          nombre_examen: examData?.nombre_examen,
+          respuestas: respuestasFormateadas
+        };
+
+        const response = await fetch('http://localhost:3000/api/submit-exam', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Examen enviado:', data);
+          alert('¡Examen enviado exitosamente!');
+          setExamFinished(true);
+          
+          // Redirigir a resultados o home
+          navigate('/resultados-estudiante');
+        } else {
+          alert('Error al enviar el examen');
+        }
+
+      } catch (err) {
+        console.error('❌ Error:', err);
+        alert('Error de conexión');
+      } finally {
+        setLoading(false);
+      }
+    }
+  }
+
+  // Pantallas de loading/error
+  if (loading && !examData) {
+    return (
+      <div style={{ textAlign: 'center', marginTop: '50px' }}>
+        <h2>Cargando examen...</h2>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ textAlign: 'center', marginTop: '50px' }}>
+        <h2>Error</h2>
+        <p>{error}</p>
+        <button onClick={() => navigate('/student-home')}>Volver</button>
+      </div>
+    );
+  }
+
+  if (preguntas.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', marginTop: '50px' }}>
+        <h2>No hay preguntas disponibles</h2>
+        <button onClick={() => navigate('/student-home')}>Volver</button>
+      </div>
+    );
+  }
+
+  if (examFinished) {
+    return (
+      <div style={{ textAlign: 'center', marginTop: '50px' }}>
+        <h2>✅ Examen completado</h2>
+        <p>Tus respuestas han sido enviadas exitosamente</p>
+        <button onClick={() => navigate('/resultados-estudiante')}>Ver resultados</button>
+      </div>
+    );
+  }
+
+  // Pregunta actual
+  const preguntaActual = preguntas[currentQuestionIndex];
+  const respuestaActual = respuestas[currentQuestionIndex] || "";
   async function handleSaveExam(e) {
     
     // Validaciones
@@ -150,129 +282,23 @@ export default function ExamStudent() {
     }
   }
 
-  function handleCancel() {
-    if (window.confirm('¿Seguro que quieres cancelar? Se perderán los cambios.')) {
-      navigate('/homeprofessor');
-    }
-  }
-
 return (
     <>
       <h1 className="main-title">New Exam</h1>
-      
-      
-      <form onSubmit={(e) => e.preventDefault()}>
-        <input 
-          className="Project-Name"
-          placeholder="Nombre del examen"
-          value={projectName}
-          onChange={(e) => setProjectName(e.target.value)}
-          disabled={loading}
-        />
-        
-        {/* INPUTARCHIVO */}
-        
-          <label 
-            htmlFor="file-upload" 
-            
-          >
-            📁 Seleccionar archivo .sql
-          </label>
-          
-          <input 
-            id="file-upload"
-            type="file"
-            accept=".sql"
-            onChange={handleFileChange}
-            disabled={loading}
-            
-          />
-          
-          {dbFileName && (
-            <div style={{ marginTop: '10px' }}>
-              <strong>Archivo seleccionado:</strong> {dbFileName}
-            </div>
-          )}
-        
-      </form>
-      
-      
-      <form onSubmit={addQuestion}>
-        <input
-          className="question-item"
-          placeholder="Enunciado de la pregunta"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-        />
-
-        <input
-          className="answer-item"
-          placeholder="Consulta esperada (respuesta)"
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-        />
-
-        <input type="submit" id="submit_button" value="Agregar Pregunta" />
-      </form>
-
-      <h2>Lista de Preguntas</h2>
+      <hr />
+      <h2>Pregunta</h2>
       <ul>
-        {list.map((item, index) => (
-          <li key={index}>
-            <label>
-              <span className="question-item">
-                {index + 1}. {item.enunciado}
-              </span>
-              <span className="answer-item">
-                Respuesta: {item.consulta_esperada}
-              </span>
-            </label>
-
-            <span
-              className="edit-btn"
-              onClick={() => {
-                const update = prompt("Editar enunciado:", item.enunciado);
-                const update2 = prompt("Editar consulta esperada:", item.consulta_esperada);
-                if (update !== null && update2 !== null) {
-                  const newList = [...list];
-                  newList[index].enunciado = update; 
-                  newList[index].consulta_esperada = update2;
-                  setList(newList);
-                }
-              }}
-            >
-              Edit
-            </span>
-            
-            <span className="delete-btn" onClick={() => deleteItem(index)}>
-              Delete
-            </span>
-          </li>
-        ))}
+      
+        <textarea
+    className="big-textarea"
+    value={descripcion}
+    onChange={(e) => setDescripcion(e.target.value)}
+    placeholder="Escribe aquí tu texto..."
+  />
       </ul>
+      <button className="next">Siguiente pregunta</button>
+      <div className="index"> 1 de 5 preguntas</div>
       
-      <p>Total de preguntas: <span>{list.length}</span></p>
-
-     
-      
-
-      <div >
-        <button 
-          onClick={handleSaveExam}
-          disabled={loading}
-          
-        >
-          {loading ? 'Guardando...' : 'Guardar Examen'}
-        </button>
-        
-        <button 
-          onClick={handleCancel}
-          disabled={loading}
-          
-        >
-          Cancelar
-        </button>
-      </div>
     </>
   );
 }
