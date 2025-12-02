@@ -1,0 +1,2 @@
+ADMIN_DB_URL=postgres://[usuario admin]:[contraseña admin]@[direccion posgres]:[puerto posgres]/[db maestra]
+DB_URL=postgres://[usuario admin]:[contraseña admin]@[direccion posgres]:[puestro posgres]

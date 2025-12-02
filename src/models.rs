@@ -33,7 +33,7 @@ pub struct StudentQuery {
     pub query: String
 }
 
-//Con este modelo guardo el estado de la aplicacion
+//Con este modelo se guarda el estado de la aplicacion
 //Por ahora, el estado solo involucra un diccionario de la forma {"nombre_db": Pool}
 #[derive(Default, Clone)]
 pub struct AppState {
