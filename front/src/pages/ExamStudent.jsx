@@ -13,7 +13,15 @@ export default function ExamStudent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [examFinished, setExamFinished] = useState(false);
-
+  const [preguntaActiva, setPreguntaActiva] = useState(0);
+  const [resultadoConsulta, setResultadoConsulta] = useState("");
+  const [tabla, setTabla] = useState([]);
+  const data = JSON.parse(localStorage.getItem("infoexamen"));
+  console.log("Datos del examen cargados:", data);
+  const enunciados = data.enunciados || [];
+  console.log("Preguntas del examen cargadas:", enunciados);
+  const preguntaActual = preguntas[preguntaActiva];
+  const respuestaActual = respuestas[preguntaActiva] || "";
   // Cargar examen al montar el componente
   useEffect(() => {
     cargarExamen();
@@ -39,49 +47,12 @@ export default function ExamStudent() {
       return;
     }
     
-    try {
-      const response = await fetch(`http://localhost:3000/api/connect-room?llave=${roomCode}`, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem('token')}`,
-          "Content-Type": "application/json"
-        }
-      });
-
-      const data = await response.json();
-      console.log("📋 Respuesta del backend:", data);
-
-      if (response.ok) {
-        setExamData(data);
-        
-        // Extraer preguntas (ajusta según tu estructura)
-        const preguntasArray = data.preguntas || data.Preguntas || [];
-        console.log("❓ Preguntas extraídas:", preguntasArray);
-        
-        setPreguntas(preguntasArray);
-        
-        // Inicializar respuestas vacías si no hay guardadas
-        if (Object.keys(respuestas).length === 0) {
-          const respuestasIniciales = {};
-          preguntasArray.forEach((_, index) => {
-            respuestasIniciales[index] = "";
-          });
-          setRespuestas(respuestasIniciales);
-        }
-        
-      } else {
-        console.error("❌ Error del servidor:", data);
-        setError("Error al cargar el examen");
-      }
-      
-    } catch (err) {
-      console.error("❌ Error de red:", err);
-      setError("Error de conexión con el servidor");
-    } finally {
-      setLoading(false);
-    }
+    setExamData(data);
+    setPreguntas(enunciados);
+    setLoading(false);
   }
-
+  
+    
   // Manejar cambio de respuesta y guardar en localStorage
   function handleRespuestaChange(value) {
     const nuevasRespuestas = {
@@ -113,6 +84,43 @@ export default function ExamStudent() {
   }
 
   // Enviar examen completo
+  async function handleSubmitSQL(){
+    try {
+      const token = localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refreshToken');
+      const nombreDb = localStorage.getItem('nombreDb');
+      const enviar ={
+        nombre_db: nombreDb,
+        query: respuestaActual
+
+      }
+      console.log(respuestaActual)
+      console.log('📤 Enviando:', enviar);
+      const response = await fetch('http://localhost:3000/api/query', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Refresh-Token': refreshToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(enviar)
+      });
+      
+      const queryres = await response.json();
+      
+      setResultadoConsulta(JSON.stringify(queryres)); 
+      console.log("Respuesta bruta del backend:", queryres);
+      if (response.ok) {
+        console.log('✅ Consulta exitosa:', queryres);
+        setTabla(queryres.respuesta);
+       
+      }
+    } catch (err) {
+      console.error('❌ Error:', err);
+      alert('Error de conexión');
+    }
+  }
+  
   async function handleEnviarExamen() {
     if (window.confirm('¿Estás seguro de enviar el examen? No podrás modificar tus respuestas.')) {
       setLoading(true);
@@ -210,7 +218,7 @@ export default function ExamStudent() {
     return (
       <div style={{ textAlign: 'center', marginTop: '50px' }}>
         <h2>⚠️ No hay preguntas disponibles</h2>
-        <button onClick={() => navigate('/student-home')}>Volver</button>
+        <button onClick={() => navigate('/studentlogin')}>Volver</button>
       </div>
     );
   }
@@ -227,8 +235,7 @@ export default function ExamStudent() {
 
   // ===== RENDER PRINCIPAL =====
 
-  const preguntaActual = preguntas[currentQuestionIndex];
-  const respuestaActual = respuestas[currentQuestionIndex] || "";
+  
   const preguntasRespondidas = Object.values(respuestas).filter(r => r.trim() !== "").length;
 
   return (
@@ -251,27 +258,37 @@ export default function ExamStudent() {
                 </div>
 
                 <div className="pregunta-enunciado">
-                    {enunciados[preguntaActiva].enunciado}
-                </div>
-
-                <div className="pregunta-tabla">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Edad</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {mockTabla.map((fila, index) => (
-                                <tr key={index}>
-                                    <td>{fila.nombre}</td>
-                                    <td>{fila.edad}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                    {enunciados[preguntaActiva]}
+               </div>
+                       <div className="pregunta-tabla">
+    {tabla && tabla.length > 0 ? (
+        <table>
+            <thead>
+                <tr>
+                    {/* Obtener las llaves del primer objeto como headers */}
+                    {Object.keys(tabla[0]).map((columna, index) => (
+                        <th key={index}>{columna}</th>
+                    ))}
+                </tr>
+            </thead>
+            <tbody>
+                {/* Mapear cada fila (diccionario) */}
+                {tabla.map((fila, rowIndex) => (
+                    <tr key={rowIndex}>
+                        {/* Mapear cada valor de la fila */}
+                        {Object.values(fila).map((valor, colIndex) => (
+                            <td key={colIndex}>{valor}</td>
+                        ))}
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    ) : (
+        <p>No hay datos para mostrar</p>
+    )}
+</div>
+            
+               
             </div>
 
             {/* Panel SQL */}
@@ -282,12 +299,25 @@ export default function ExamStudent() {
                     value={respuestaActual}
                     onChange={(e) => handleRespuestaChange(e.target.value)}
                 />
-
+                <div className="resultado-sql">
+                  <h3>Resultado de la consulta:</h3>
+                       <pre style={{ 
+                           background: "#1e1e1e", 
+                           color: "white", 
+                            padding: "10px", 
+                            borderRadius: "8px",
+                            maxHeight: "200px",
+                            overflow: "auto" 
+                            }}>
+                      {resultadoConsulta}
+                  </pre>
+                </div>
+            
                 <div className="buttons">
-                    <button className="btn-primary" onClick={enviarExamen}>
+                    <button className="btn-primary" onClick={handleEnviarExamen}>
                         Enviar Examen
                     </button>
-                    <button className="btn-secondary" onClick>
+                    <button className="btn-secondary" onClick={handleSubmitSQL}>
                         Probar Consulta
                     </button>
                 </div>
