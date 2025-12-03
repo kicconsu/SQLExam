@@ -80,9 +80,6 @@ pub async fn gather_exams(Query(payload):Query<Vec<(String, String)>>, heads:Hea
     send_res
 }
 
-pub async fn gather_questions(Query(payload):Query<Vec<(String, String)>>, heads:HeaderMap) -> impl IntoResponse {
-    
-}
 
 /*
     un examen es: {profe, nombre_examen, db_asociada}. toca sacar las preguntas del payload y mandarlo a otra tabla.
