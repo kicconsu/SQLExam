@@ -27,7 +27,7 @@ createRoot(document.getElementById('root')).render(
         <Route path= "/NewStudents" element ={ <NewStudents />} />
         <Route path= "/exam" element ={ <Exam />} />
         
-        <Route path= "/examstudent" element ={ <ExamStudent />} /> //debe estar linkeado con su id 
+        <Route path= "/examstudent" element ={ <ExamStudent />} /> 
 
       </Routes>
     </BrowserRouter>

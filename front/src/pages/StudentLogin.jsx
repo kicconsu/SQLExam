@@ -28,7 +28,7 @@ export default function StudentLogin() {
     };
 
     try {
-      const response = await fetch(`http://localhost:3000/api/connect-room?codigo=${formData.codigo}`, { //esta direccion puede varias confirma plis
+      const response = await fetch(`http://localhost:3000/api/connect-room?llave=${formData.codigo}`, { //esta direccion puede varias confirma plis
         method: "GET",
         headers: {
           "Authorization": `Bearer ${localStorage.getItem('token')}`,
@@ -47,7 +47,10 @@ export default function StudentLogin() {
       if (response.ok) {
         console.log("Entrada existosa:", data);
         console.log("Status:", response.status);
-
+        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("roomCode", formData.codigo);
+        localStorage.setItem("infoexamen", JSON.stringify(data.infoExamen));
+        localStorage.setItem("nombreDb", data.nombreDb);
         navigate('/examstudent');
       
       } else {
