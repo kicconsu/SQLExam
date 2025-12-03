@@ -1,0 +1,178 @@
+/* ProfessorExam.css — Scoped to .exam-page so it doesn't break other pages */
+
+:root {
+  --primary: #ffffff;
+  --secondary: #000000;
+  --muted: #9b9b9b;
+  --accent: #646cff;
+  --danger: #d64545;
+  --surface: #fafafa;
+  --card-shadow: 0 18px 40px rgba(0,0,0,0.06);
+}
+
+/* Wrapper: todo lo del examen queda dentro de .exam-page */
+.exam-page{
+  max-width: 820px;
+  margin: 36px auto;
+  padding: 28px;
+  background: var(--primary);
+  border-radius: 14px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid #eee;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: var(--secondary);
+}
+
+/* título */
+.exam-page .main-title {
+  text-align: center;
+  font-size: 2.4rem;
+  margin: 0 0 10px;
+  font-weight: 800;
+}
+
+/* fila de formulario */
+.exam-page .form-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 14px 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* inputs scopeados */
+.exam-page input[type="text"],
+.exam-page textarea {
+  width: 100%;
+  max-width: 680px;
+  padding: 10px 12px;
+  border: 1.6px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  color: var(--secondary);
+  background: #fff;
+  transition: box-shadow .15s ease, border-color .12s ease;
+  box-sizing: border-box;
+}
+
+/* inputs específicos (mantengo clases que ya usas) */
+.exam-page .question-item,
+.exam-page .answer-item,
+.exam-page .Project-Name {
+  max-width: 680px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1.6px solid #e6e6e6;
+  font-size: 15px;
+}
+
+/* focus */
+.exam-page input:focus,
+.exam-page textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 6px 20px rgba(100,108,255,0.10);
+}
+
+/* file input: hide native input and style label */
+.exam-page input[type="file"] { display: none; }
+
+.exam-page .file-label {
+  display: inline-block;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: linear-gradient(180deg,#111,#000);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.14);
+  font-weight: 700;
+}
+
+/* nombre del archivo */
+.exam-page .file-name {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* botones grandes (Guardar, Agregar Pregunta, Cancelar) */
+.exam-page .btn {
+  padding: 12px 20px;
+  border-radius: 999px;
+  border: none;
+  background: var(--secondary);
+  color: var(--primary);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.exam-page .btn:hover { transform: translateY(-3px); box-shadow: 0 18px 38px rgba(0,0,0,0.16); }
+.exam-page .btn:active { transform: translateY(1px); }
+
+/* variante secundaria (cancelar) */
+.exam-page .btn.secondary {
+  background: #f4f4f4;
+  color: var(--secondary);
+  box-shadow: none;
+  border: 1px solid #e7e7e7;
+}
+
+/* lista de preguntas como tarjetas */
+.exam-page .questions-list {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+
+/* cada pregunta */
+.exam-page .questions-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(180deg,#fff,#fbfbfb);
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid #eee;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+}
+
+/* texto principal y secundario de la pregunta */
+.exam-page .q-text { font-weight: 700; color: var(--secondary); }
+.exam-page .q-sub { font-size: 0.92rem; color: var(--muted); margin-top: 6px; }
+
+/* acciones por pregunta */
+.exam-page .question-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.exam-page .small-btn {
+  padding: 8px 10px;
+  font-size: 0.92rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  background: var(--secondary);
+  color: var(--primary);
+}
+.exam-page .small-btn.danger { background: var(--danger); box-shadow:none; }
+
+/* contador */
+.exam-page .count { text-align: center; margin-top: 8px; color: var(--muted); font-weight:600; }
+
+/* responsive */
+@media (max-width:720px){
+  .exam-page { padding: 18px; margin: 12px; }
+  .exam-page .questions-list li { flex-direction: column; align-items: flex-start; }
+  .exam-page .form-row { flex-direction: column; }
+  .exam-page .file-label { width:100%; text-align:center; }
+}

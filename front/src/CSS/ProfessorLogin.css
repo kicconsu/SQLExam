@@ -1,0 +1,59 @@
+/* CONTENEDOR GENERAL */
+.login-container {
+  max-width: 380px;
+  width: 90%;
+  margin: 70px auto;
+  padding: 30px 25px;
+  background: var(--primary);
+  color: var(--secondary);
+  border: 2px solid var(--secondary);
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.15);
+  text-align: center;
+  animation: fadeIn 0.6s ease;
+}
+
+
+.main-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: right;
+  margin-top: 40px;
+  margin-bottom: 20px;
+  color: var(--secondary);
+}
+input  {
+  border: 1.5px solid var(--secondary);
+  font-family: Chicago_12;
+  font-size: 18px;
+  padding-left: 5px;
+}
+input:focus  {
+  outline:none;
+}
+input[type="text"]:focus-visible,
+input[type="email"]:focus-visible,
+input[type="password"]:focus-visible,
+
+textarea:focus {
+  background: var(--secondary);
+  color: var(--primary);
+  border-color: #646cff;
+  box-shadow: 0 0 5px #646cff;
+}
+form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  align-items: center; /* centrar inputs y botón */
+}
+
+form input {
+  width: 90%;  /* evita que choquen con el botón */
+  max-width: 280px;
+}
+
+form button {
+  margin-top: 10px !important; /* separa el botón */
+  width: auto;
+}

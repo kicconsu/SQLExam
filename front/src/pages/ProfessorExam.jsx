@@ -157,11 +157,12 @@ export default function ProfessorExam() {
   }
 
 return (
-    <>
+    <div className="exam-page">
       <h1 className="main-title">New Exam</h1>
       
       
       <form onSubmit={(e) => e.preventDefault()}>
+        
         <input 
           className="Project-Name"
           placeholder="Nombre del examen"
@@ -171,10 +172,10 @@ return (
         />
         
         {/* INPUTARCHIVO */}
-        
+          <div className="form-row">
           <label 
             htmlFor="file-upload" 
-            
+            className="file-label"            
           >
             📁 Seleccionar archivo .sql
           </label>
@@ -184,12 +185,12 @@ return (
             type="file"
             accept=".sql"
             onChange={handleFileChange}
-            disabled={loading}
-            
+            disabled={loading}   
           />
-          
+          </div>
+
           {dbFileName && (
-            <div style={{ marginTop: '10px' }}>
+            <div className="file-name">
               <strong>Archivo seleccionado:</strong> {dbFileName}
             </div>
           )}
@@ -211,25 +212,24 @@ return (
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
         />
-
-        <input type="submit" id="submit_button" value="Agregar Pregunta" />
+        <div className="form-row">
+        <button type="button" className="btn" onClick={addQuestion}>Agregar Pregunta</button>
+        </div>
       </form>
 
+
       <h2>Lista de Preguntas</h2>
-      <ul>
+      <ul className="questions-list">
         {list.map((item, index) => (
           <li key={index}>
-            <label>
-              <span className="question-item">
-                {index + 1}. {item.enunciado}
-              </span>
-              <span className="answer-item">
-                Respuesta: {item.consulta_esperada}
-              </span>
-            </label>
+            <div>
+            <div className="q-text">{index + 1}. {item.enunciado}</div>
+            <div className="q-sub">Respuesta: {item.consulta_esperada}</div>
+          </div>
 
-            <span
-              className="edit-btn"
+            <div>
+            <button
+              className="small-btn"
               onClick={() => {
                 const update = prompt("Editar enunciado:", item.enunciado);
                 const update2 = prompt("Editar consulta esperada:", item.consulta_esperada);
@@ -242,11 +242,12 @@ return (
               }}
             >
               Edit
-            </span>
+            </button>
             
-            <span className="delete-btn" onClick={() => deleteItem(index)}>
+            <button className="small-btn danger" onClick={() => deleteItem(index)}>
               Delete
-            </span>
+            </button>
+            </div>
           </li>
         ))}
       </ul>
@@ -256,8 +257,9 @@ return (
      
       
 
-      <div >
+      <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
         <button 
+          className="btn"
           onClick={handleSaveExam}
           disabled={loading}
           
@@ -266,6 +268,7 @@ return (
         </button>
         
         <button 
+          className="btn secondary"
           onClick={handleCancel}
           disabled={loading}
           
@@ -273,6 +276,6 @@ return (
           Cancelar
         </button>
       </div>
-    </>
+    </div>
   );
 }

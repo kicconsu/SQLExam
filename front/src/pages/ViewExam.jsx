@@ -334,7 +334,7 @@ export default function ViewExam() {
   }
 
   return (
-    <>
+    <div className="Exam-container">
       <h1 className="main-title">
         {editingName ? 'Editando Examen' : 'Ver Examen'}
         {isPublished && <span >✓ Publicado</span>}
@@ -342,7 +342,7 @@ export default function ViewExam() {
       
       {/* Nombre del examen */}
       <form onSubmit={(e) => e.preventDefault()}>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div className="h2">
             <label className="mi-label">Nombre del examen:</label>
           <input 
             className="Project-Name"
@@ -385,54 +385,34 @@ export default function ViewExam() {
 
            
      {/* Botones */}
-<div style={{ 
-  display: 'flex', 
-  gap: '10px', 
-  marginTop: '30px',
-  flexWrap: 'wrap' 
-}}>
-  {/* Botón Abrir - deshabilitado si ya está publicado */}
+<div className="buttons-container">
   <button 
+    className="btn open-btn"
     onClick={handlePublish}
-    disabled={saving || isPublished} // ← Deshabilitado si está publicado
-    style={{
-      backgroundColor: isPublished ? '#cccccc' : '#007bff',
-      color: 'white',
-      padding: '10px 20px',
-      border: 'none',
-      borderRadius: '5px',
-      cursor: (saving || isPublished) ? 'not-allowed' : 'pointer',
-      opacity: isPublished ? 0.5 : 1
-    }}
+    disabled={saving || isPublished}
   >
     📢 Abrir Examen
   </button>
 
-  {/* Botón Cerrar - deshabilitado si NO está publicado */}
   <button 
+    className="btn close-btn"
     onClick={handleUnpublish}
-    disabled={saving || !isPublished} // ← Deshabilitado si NO está publicado
-    style={{
-      backgroundColor: !isPublished ? '#cccccc' : '#ffc107',
-      color: !isPublished ? '#666' : 'black',
-      padding: '10px 20px',
-      border: 'none',
-      borderRadius: '5px',
-      cursor: (saving || !isPublished) ? 'not-allowed' : 'pointer',
-      opacity: !isPublished ? 0.5 : 1
-    }}
+    disabled={saving || !isPublished}
   >
     📤 Cerrar Examen
   </button>
-        
-        <button 
-          onClick={handleCancel}
-          disabled={saving}
-          
-        >
-          ← Volver
-        </button>
-      </div>
-    </>
+
+  
+
+  <button 
+    className="btn back-btn"
+    onClick={handleCancel}
+    disabled={saving}
+  >
+    ← Volver
+  </button>
+</div>
+
+    </div>
   );
 }

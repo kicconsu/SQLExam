@@ -144,57 +144,66 @@ async function cargarExamenes() {
   }
 
   if (loading) {
-    return <div><h1>Cargando exámenes...</h1></div>;
+    return 
+    <div className='home-container'>
+      <h1 className='main-title'>Cargando exámenes...
+      </h1>
+    </div>;
   }
 
   return (
-    <>
-      <h1 className="main-title">Panel de control</h1>
+    <div className='home-container'>
+      <h1 className="main-title">
+        Panel de control
+      </h1>
+
+      {profe && (
+        <p className='welcome-text'>
+          Bienvenido, {profe.nombre || profe.name || profe.email || "Profesor"}
+        </p>
+      )}
+
+      
+      <div className='top-actions'>
       <ButtonRedirect 
         to="/NewStudents" 
         label="Nuevo Estudiante"
         className="create-newstudent-button"
       />
-      <h3>Tus proyectos</h3>
-
       <ButtonRedirect 
         to="/professorexam" 
         label="Crear Examen"
         className="create-exam-button"
       />
-
-      {examenes.length === 0 && !loading && (
-        <p>No tienes exámenes creados todavía</p>
-      )}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        {examenes.map((examen) => (
-         <div key={examen._id}>
-
-            <button
-              onClick={() => navigate(`/viewExam/${examen._id}`)} 
-            >
-              {examen.nombre_examen}
-              <div style={{ fontSize: '14px', marginTop: '5px' }}>
-                Base de datos: {examen.db_asociada} | Preguntas: {examen.preguntas?.length || 0}
-              </div>
-            </button>
-
-            <button 
-              onClick={() => handleDeleteExam(examen._id, examen.nombre_examen)}
-            >
-              Eliminar
-            </button>
-          
-          </div>
-          
-        ))}
       </div>
-      <button 
-              onClick={() => navigate(`/`)}
-            >
-              Cerrar sesión
-            </button>
-    </>
-  );
+      <h2 className='projects-title'>Tus proyectos</h2>
+      {error && <p className='error-text'>{error}</p>}
+
+      {examenes.length === 0 && !loading ? (
+        <p className='empty-text'>No tienes exámenes creados todavía</p>
+      ) : (
+
+      <div className="exam-list">
+          {examenes.map((examen) => (
+            <div className="exam-card" key={examen._id}>
+              <div className="exam-info" onClick={() => navigate(`/viewExam/${examen._id}`)}>
+                <div className="exam-title">{examen.nombre_examen || 'Sin título'}</div>
+                <div className="exam-meta">
+                  Base de datos: <strong>{examen.db_asociada || '—'}</strong> · Preguntas: <strong>{examen.preguntas?.length || 0}</strong>
+                </div>
+              </div>
+
+              <div className="exam-actions">
+                <button className="btn small" onClick={() => navigate(`/viewExam/${examen._id}`)}>Ver</button>
+                <button className="btn small danger" onClick={() => handleDeleteExam(examen._id, examen.nombre_examen)}>Eliminar</button>
+              </div>
+            </div>
+          ))}
+      </div>
+      )}
+      <button onClick ={() => navigate('/')}>
+        Cerrar sesión
+        </button>>
+    </div>
+  )
 }

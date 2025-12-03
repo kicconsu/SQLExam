@@ -1,0 +1,108 @@
+
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", Arial, sans-serif;
+    background-color: #f4f6f9; /* Fondo suave profesional */
+}
+
+/* Centrado del contenido */
+.newstudent-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* ======== CARD ======== */
+
+.newstudent-card {
+    background: #ffffff;
+    padding: 45px 55px;
+    width: 650px;
+    border-radius: 18px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    text-align: center;
+}
+
+/* ======== TITULO ======== */
+
+.NewStudents-title {
+    font-size: 40px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #222;
+}
+
+.NewStudents-paragraph,
+.NewStudents-paragraph2 {
+    color: #555;
+    font-size: 17px;
+    margin-bottom: 35px;
+}
+
+/* ======== FORM ======== */
+
+.newstudent-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Input estilo moderno */
+.newstudent-input {
+    padding: 14px;
+    font-size: 16px;
+    border: 1.8px solid #d0d0d0;
+    border-radius: 10px;
+    transition: all 0.25s ease-in-out;
+}
+
+/* Input al enfocar */
+.newstudent-input:focus {
+    outline: none;
+    border-color: #4a73ff;
+    box-shadow: 0 0 5px rgba(74, 115, 255, 0.4);
+}
+
+/* ======== BOTÓN CREAR ======== */
+
+.newstudent-btn {
+    background: #4a73ff;
+    color: white;
+    padding: 14px;
+    font-size: 18px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.25s ease-in-out;
+}
+
+.newstudent-btn:hover {
+    background: #2d56e0;
+}
+
+/* ======== BOTÓN VOLVER ======== */
+
+.back-btn {
+    background: #e4e6eb;
+    color: black;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: 0.25s;
+    margin-top: 18px;
+    padding: 12px 25px;
+}
+
+.back-btn:hover {
+    background: #cfd3d8;
+}

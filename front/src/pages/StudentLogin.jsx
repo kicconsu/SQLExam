@@ -121,19 +121,22 @@ async function handleSubmitLogin(e) {
     }
   }
   return (
-    <>
-      <h1 className="main-title">Student Login</h1>
-
-      <h2 className="StudentLogin-title">Bienvenido</h2>
-
+    <div className='login-container'>
+      <h1 className="main-title">
+        SQL EXAM
+      </h1>
+      <h2 className="StudentLogin-title">
+        Student Login
+      </h2>
       <p className="StudentLogin-paragraph">
-        Ingrese el usuario y contraseña proporcionados por su profesor       </p>
- <form onSubmit={handleSubmitLogin}>
-       <input
+        Bienvenido al portal de estudiantes. Aquí podrás ingresar para presentar los exámenes asignados por tu profesor.
+      </p>
+ <form className="student-form" onSubmit={handleSubmitLogin}>
+        <input
           type="text"
-          placeholder="E-mail"
-          value={formData1.Email}
-          onChange={(e) => setFormData1({ ...formData1, Email: e.target.value })}
+          placeholder="Email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           disabled={loading}
           required />
 
@@ -145,12 +148,12 @@ async function handleSubmitLogin(e) {
           disabled={loading}
         />
 
-        <button type="submit" disabled={loading}>
+        <button type="submit" className='btn' disabled={loading}>
           {loading ? "Cargando..." : "Log in"}
         </button>
 
       </form>
-       {isLoged && <span >✓ Usted esta logeado </span>}
+       {isLoged && <div style={{ color: 'green', marginTop: 8 }}>✓ Usted está logeado</div>}
     <p className="StudentLogin-paragraph">
          Ingrese el codigo del examen proporcionado por su profesor       </p>
  <form onSubmit={handleSubmitCode}>
@@ -170,11 +173,9 @@ async function handleSubmitLogin(e) {
       </form>
       {error && <p style={{color: 'red'}}>{error}</p>}
       {status && <p>Status: {status}</p>}
-      
-
-      <p className="StudentLogin-paragraph2">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-      </p>
-    </>
+      <p2 className="StudentLogin-paragraph2">
+        Asegúrate de tener una conexión estable antes de comenzar tu evaluación.
+     </p2>
+    </div>
   )
 }

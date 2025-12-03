@@ -87,16 +87,16 @@ export default function NewStudents() {
   }
 
   return (
-    <>
-    <head>
-      <title>Nuevo Estudiante</title>
-    </head>
-    <h1 className="NewStudents-title">Nuevo Estudiante</h1>
+    <div className='newstudent-container'>
+      <div className='newstudent-card'>
+    
+      <h1 className="NewStudents-title">Nuevo Estudiante</h1>
       <p className="NewStudents-paragraph">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        Ingrese los datos del nuevo estudiante para habilitar su acceso al sistema académico. Asegúrese de verificar la información antes de continuar.
       </p>
- <form onSubmit={handleSubmit}>
-  <input
+ <form className='newstudent-form' onSubmit={handleSubmit}>
+        <input
+          className='newstudent-input'
           type="text"
           placeholder="Inserte el correo del estudiante"
           value={formData.email}
@@ -112,6 +112,7 @@ export default function NewStudents() {
         />
 
         <input
+          className="newstudent-input"
           type="password"
           placeholder="Inserte el código del estudiante"
           value={formData.password}
@@ -119,7 +120,7 @@ export default function NewStudents() {
           disabled={loading}
         />
 
-        <button type="submit" disabled={loading}>
+        <button className='newstudent-btn' type="submit" disabled={loading}>
           {loading ? "Cargando..." : "Crear Estudiante"}
         </button>
 
@@ -129,16 +130,17 @@ export default function NewStudents() {
       {status && <p>Status: {status}</p>}
 
       <p className="NewStudents-paragraph2">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        Una vez registrado, el estudiante podrá iniciar sesión y utilizar las herramientas disponibles en la plataforma.
       </p>
       
-        <button 
+        <button className='back-btn'
           onClick={handleCancel}
           
           
         >
           ← Volver
         </button>
-    </>
+      </div>
+    </div>
   )
 }
