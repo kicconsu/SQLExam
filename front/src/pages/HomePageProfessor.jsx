@@ -1,0 +1,209 @@
+import { useEffect, useState } from 'react'
+import '../CSS/HomePageprofessor.css'
+import GetBack from '../components/getback.jsx'
+import ButtonRedirect from '../components/buttonredirect.jsx'
+import { useNavigate } from 'react-router-dom'
+
+export default function HomePageprofessor() {
+  const navigate = useNavigate();
+  const [profe, setProfe] = useState(null);
+  const [examenes, setExamenes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    cargarExamenes();
+  }, []);
+
+async function cargarExamenes() {
+  setLoading(true);
+  setError(null);
+
+  try {
+    let token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    // Primera petición
+    let response = await fetch('http://localhost:3000/api/exams', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('📡 Response status:', response.status);
+    
+      if (response.status === 401) {
+        localStorage.clear();
+        alert('Tu sesión ha expirado');
+        navigate('/professorlogin');
+        return;
+      }
+
+
+    // Si es 401, intenta renovar el token
+    if (response.status === 401) {
+      console.log('🔄 Token expirado, intentando renovar...');
+      
+      if (!refreshToken) {
+        console.error('❌ No hay refresh token');
+        localStorage.clear();
+        navigate('/professorlogin');
+        return;
+      }
+
+      // Llamar al endpoint de ROBLE para renovar el token
+      const refreshResponse = await fetch('https://roble-api.openlab.uninorte.edu.co/auth/sqlexam_b05c8db1d5/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ refreshToken })
+      });
+
+      if (refreshResponse.ok) {
+        const data = await refreshResponse.json();
+        
+        // Guardar el nuevo token
+        localStorage.setItem('token', data.accessToken);
+        if (data.refreshToken) {
+          localStorage.setItem('refreshToken', data.refreshToken);
+        }
+
+        console.log('✅ Token renovado exitosamente');
+
+        // Reintentar la petición original con el nuevo token
+        token = data.accessToken;
+        response = await fetch('http://localhost:3000/api/exams', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'X-Refresh-Token': refreshToken
+          }
+        });
+
+      } else {
+        console.error('❌ Refresh token inválido');
+        localStorage.clear();
+        navigate('/professorlogin');
+        return;
+      }
+    }
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Data completa recibida:', data);
+      console.log('✅ Primer examen:', data[0]);
+      
+      // El backend devuelve un array directamente
+      if (Array.isArray(data)) {
+        setExamenes(data);
+      } else {
+        setExamenes([]);
+      }
+      
+    } else {
+      setError('Error al cargar los exámenes');
+    }
+
+  } catch (err) {
+    console.error('❌ Error:', err);
+    setError('Error de conexión con el servidor');
+  } finally {
+    setLoading(false);
+  }
+}
+
+  async function handleDeleteExam(examId, projectName) {
+    if (!window.confirm(`¿Seguro que quieres eliminar "${projectName}"?`)) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refreshToken');
+      const response = await fetch('http://localhost:3000/api/delete-exam', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Refresh-Token': refreshToken ,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ projectName })
+      });
+
+      if (response.ok) {
+        alert('Examen eliminado exitosamente');
+        cargarExamenes();
+      } else {
+        alert('Error al eliminar el examen');
+      }
+
+    } catch (err) {
+      console.error('❌ Error:', err);
+      alert('Error de conexión');
+    }
+  }
+
+  if (loading) {
+    return 
+    <div className='home-container'>
+      <h1 className='main-title'>Cargando exámenes...
+      </h1>
+    </div>;
+  }
+
+  return (
+    <div className='home-container'>
+      <h1 className="main-title">
+        Panel de control
+      </h1>
+
+      {profe && (
+        <p className='welcome-text'>
+          Bienvenido, {profe.nombre || profe.name || profe.email || "Profesor"}
+        </p>
+      )}
+
+      
+      <div className='top-actions'>
+      <ButtonRedirect 
+        to="/NewStudents" 
+        label="Nuevo Estudiante"
+        className="create-newstudent-button"
+      />
+      <ButtonRedirect 
+        to="/professorexam" 
+        label="Crear Examen"
+        className="create-exam-button"
+      />
+      </div>
+      <h2 className='projects-title'>Tus proyectos</h2>
+      {error && <p className='error-text'>{error}</p>}
+
+      {examenes.length === 0 && !loading ? (
+        <p className='empty-text'>No tienes exámenes creados todavía</p>
+      ) : (
+
+      <div className="exam-list">
+          {examenes.map((examen) => (
+            <div className="exam-card" key={examen._id}>
+              <div className="exam-info" onClick={() => navigate(`/viewExam/${examen._id}`)}>
+                <div className="exam-title">{examen.nombre_examen || 'Sin título'}</div>
+                <div className="exam-meta">
+                  Base de datos: <strong>{examen.db_asociada || '—'}</strong> · Preguntas: <strong>{examen.preguntas?.length || 0}</strong>
+                </div>
+              </div>
+
+              <div className="exam-actions">
+                <button className="btn small" onClick={() => navigate(`/viewExam/${examen._id}`)}>Ver</button>
+                <button className="btn small danger" onClick={() => handleDeleteExam(examen._id, examen.nombre_examen)}>Eliminar</button>
+              </div>
+            </div>
+          ))}
+      </div>
+      )}
+      <div className='landing-footer' style={{ marginTop: 30 }}>
+        <GetBack />
+      </div>
+    </div>
+  )
+}
