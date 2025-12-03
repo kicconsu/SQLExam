@@ -11,7 +11,7 @@ export default function StudentLogin() {
     codigo: ""
   });
   const [formData1, setFormData1] = useState({
-    Email: "",
+    email: "",
     password: ""
   });
   const [loading, setLoading] = useState(false);
@@ -73,7 +73,7 @@ async function handleSubmitLogin(e) {
     setError(null);
 
     const jsonData = {
-      email: formData1.Email,
+      email: formData1.email,
       password: formData1.password
     };
 
@@ -135,10 +135,10 @@ async function handleSubmitLogin(e) {
         <input
           type="text"
           placeholder="Email"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          value={formData1.email}
+          onChange={(e) => setFormData1({ ...formData1, email: e.target.value })}
           disabled={loading}
-          required />
+          />
 
         <input
           type="password"

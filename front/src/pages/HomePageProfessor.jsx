@@ -203,7 +203,7 @@ async function cargarExamenes() {
       )}
       <button onClick ={() => navigate('/')}>
         Cerrar sesión
-        </button>>
+      </button>
     </div>
   )
 }
