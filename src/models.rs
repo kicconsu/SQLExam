@@ -1,5 +1,3 @@
-#[allow(dead_code)]
-
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use serde::{Deserialize, Serialize};
@@ -36,6 +34,8 @@ pub struct StudentQuery {
 }
 
 #[derive(Deserialize, Debug)]
+#[allow(dead_code)]
+
 pub struct RoomKeyRow {
     #[serde(rename = "_id")]
     pub id: String,
@@ -45,6 +45,8 @@ pub struct RoomKeyRow {
 }
 
 #[derive(Deserialize, Debug)]
+#[allow(dead_code)]
+
 pub struct PreguntaRow {
     #[serde(rename = "_id")]
     pub id: String,
