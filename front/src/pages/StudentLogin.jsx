@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import GetBack from '../components/getback.jsx'
 import ButtonRedirect from '../components/buttonredirect.jsx'
 
-
 export default function StudentLogin() {
   const navigate = useNavigate();
   const [isLoged, setIsLoged] = useState(false);
@@ -12,7 +11,7 @@ export default function StudentLogin() {
     codigo: ""
   });
   const [formData1, setFormData1] = useState({
-    usuario: "",
+    email: "",
     password: ""
   });
   const [loading, setLoading] = useState(false);
@@ -29,9 +28,10 @@ export default function StudentLogin() {
     };
 
     try {
-      const response = await fetch(`http://localhost:3000/api/connect-room/${formData.codigo}`, { //esta direccion puede varias confirma plis
+      const response = await fetch(`http://localhost:3000/api/connect-room?llave=${formData.codigo}`, { //esta direccion puede varias confirma plis
         method: "GET",
         headers: {
+          "Authorization": `Bearer ${localStorage.getItem('token')}`,
           "Content-Type": "application/json"
         },
         
@@ -45,15 +45,16 @@ export default function StudentLogin() {
 
 
       if (response.ok) {
-        console.log("Login exitoso:", data);
+        console.log("Entrada existosa:", data);
         console.log("Status:", response.status);
-  
-        
-
+        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("roomCode", formData.codigo);
+        localStorage.setItem("infoexamen", JSON.stringify(data.infoExamen));
+        localStorage.setItem("nombreDb", data.nombreDb);
         navigate('/examstudent');
       
       } else {
-        setError(data.message || "Error en el login");
+        setError(data.message || "Error al entrar en el examen");
         console.error("Error del servidor:", data);
       }
       
@@ -65,18 +66,15 @@ export default function StudentLogin() {
     }
   }
 async function handleSubmitLogin(e) {
-  const navigate = useNavigate();
-  const [formData1, setFormData1] = useState({
-    usuario: "",
-    password: ""
-  });
-    e.preventDefault();
+   e.preventDefault();
+  
+  
     setLoading(true);
     setError(null);
 
     const jsonData = {
-      usuario: formData.usuario,
-      password: formData.password
+      email: formData1.email,
+      password: formData1.password
     };
 
     try {
@@ -137,10 +135,10 @@ async function handleSubmitLogin(e) {
         <input
           type="text"
           placeholder="Email"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          value={formData1.email}
+          onChange={(e) => setFormData1({ ...formData1, email: e.target.value })}
           disabled={loading}
-        />
+          />
 
         <input
           type="password"

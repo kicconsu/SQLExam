@@ -402,13 +402,7 @@ export default function ViewExam() {
     📤 Cerrar Examen
   </button>
 
-  <button 
-    className="btn results-btn"
-    onClick={handleViewResults}
-    disabled={saving}
-  >
-    📊 Ver Resultados
-  </button>
+  
 
   <button 
     className="btn back-btn"

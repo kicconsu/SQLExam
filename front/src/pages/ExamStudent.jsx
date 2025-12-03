@@ -1,85 +1,67 @@
-import { useState } from "react";
-import "../CSS/ProfessorExam.css";
-import ProfessorLogin from "./ProfessorLogin";
+import { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
+import "../index.css";
+
 export default function ExamStudent() {
   const navigate = useNavigate();
-   const [examData, setExamData] = useState(null);
+  
+  // Estados principales
+  const [examData, setExamData] = useState(null);
   const [preguntas, setPreguntas] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [respuestas, setRespuestas] = useState({}); // Guarda las respuestas del estudiante
+  const [respuestas, setRespuestas] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [examFinished, setExamFinished] = useState(false);
-
-  
+  const [preguntaActiva, setPreguntaActiva] = useState(0);
+  const [resultadoConsulta, setResultadoConsulta] = useState("");
+  const [tabla, setTabla] = useState([]);
+  const data = JSON.parse(localStorage.getItem("infoexamen"));
+  console.log("Datos del examen cargados:", data);
+  const enunciados = data.enunciados || [];
+  console.log("Preguntas del examen cargadas:", enunciados);
+  const preguntaActual = preguntas[preguntaActiva];
+  const respuestaActual = respuestas[preguntaActiva] || "";
+  // Cargar examen al montar el componente
   useEffect(() => {
     cargarExamen();
   }, []);
-  
-  async function handleExam(e) {
-    
-    e.preventDefault(); // evita que el form haga refresh
-   
 
+  // Cargar respuestas guardadas del localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("respuestasExamen");
+    if (stored) {
+      setRespuestas(JSON.parse(stored));
+    }
+  }, []);
+
+  // Función para cargar el examen desde el backend
+  async function cargarExamen() {
+    setLoading(true);
     const roomCode = localStorage.getItem("roomCode");
+    
     if (!roomCode) {
-      console.error("No hay roomCode almacenado");
+      console.error("❌ No hay roomCode almacenado");
+      setError("No se encontró el código de sala");
+      setLoading(false);
       return;
     }
     
-    try {
-      const response = await fetch(`http://localhost:3000/api/exam-info/${roomCode}`, { //esta direccion puede varias confirma plis
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        
-      });
-
-      // Capturar el status
-      setStatus(response.status);
-      
-      const data = await response.json();
-      console.log("Respuesta del backend:", data);
-
-
-      if (response.ok) {
-        
-  
-         // Extrae las preguntas del objeto data
-        // Ajusta según la estructura que devuelva tu backend
-        const preguntasArray = data.preguntas || data.Preguntas || [];
-        console.log("❓ Preguntas extraídas:", preguntasArray);
-setPreguntas(preguntasArray);
-        
-        // Inicializar respuestas vacías para cada pregunta
-        const respuestasIniciales = {};
-        preguntasArray.forEach((_, index) => {
-          respuestasIniciales[index] = "";
-        });
-        setRespuestas(respuestasIniciales)
-        
-      
-      } else {
-       
-        console.error("Error del servidor:", data);
-      }
-      
-    } catch (err) {
-      console.error("Error de red:", err);
-      setError("Error de conexión con el servidor");
-    } finally {
-      setLoading(false);
-    }
+    setExamData(data);
+    setPreguntas(enunciados);
+    setLoading(false);
+  }
   
     
-  }
-   function handleRespuestaChange(value) {
-    setRespuestas({
+  // Manejar cambio de respuesta y guardar en localStorage
+  function handleRespuestaChange(value) {
+    const nuevasRespuestas = {
       ...respuestas,
       [currentQuestionIndex]: value
-    });
+    };
+    
+    setRespuestas(nuevasRespuestas);
+    localStorage.setItem("respuestasExamen", JSON.stringify(nuevasRespuestas));
   }
 
   // Ir a la siguiente pregunta
@@ -95,21 +77,71 @@ setPreguntas(preguntasArray);
       setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
   }
+
+  // Ir a una pregunta específica
+  function irAPregunta(index) {
+    setCurrentQuestionIndex(index);
+  }
+
   // Enviar examen completo
+  async function handleSubmitSQL(){
+    try {
+      const token = localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refreshToken');
+      const nombreDb = localStorage.getItem('nombreDb');
+      const enviar ={
+        nombre_db: nombreDb,
+        query: respuestaActual
+
+      }
+      console.log(respuestaActual)
+      console.log('📤 Enviando:', enviar);
+      const response = await fetch('http://localhost:3000/api/query', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Refresh-Token': refreshToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(enviar)
+      });
+      
+      const queryres = await response.json();
+      
+      setResultadoConsulta(JSON.stringify(queryres)); 
+      console.log("Respuesta bruta del backend:", queryres);
+      if (response.ok) {
+        console.log('✅ Consulta exitosa:', queryres);
+        setTabla(queryres.respuesta);
+       
+      }
+    } catch (err) {
+      console.error('❌ Error:', err);
+      alert('Error de conexión');
+    }
+  }
+  
   async function handleEnviarExamen() {
     if (window.confirm('¿Estás seguro de enviar el examen? No podrás modificar tus respuestas.')) {
       setLoading(true);
       
       try {
         const token = localStorage.getItem('token');
+        const refreshToken = localStorage.getItem('refreshToken');
         const user = JSON.parse(localStorage.getItem('user'));
         const roomCode = localStorage.getItem('roomCode');
 
-        // Formatear respuestas para enviar al backend
+        if (!token) {
+          alert('Tu sesión ha expirado');
+          navigate('/studentlogin');
+          return;
+        }
+
+        // Formatear respuestas para el backend
         const respuestasFormateadas = preguntas.map((pregunta, index) => ({
           numero_pregunta: index + 1,
           enunciado: pregunta.enunciado,
-          respuesta_estudiante: respuestas[index],
+          respuesta_estudiante: respuestas[index] || "",
           consulta_esperada: pregunta.consulta_esperada
         }));
 
@@ -124,18 +156,30 @@ setPreguntas(preguntasArray);
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
+            'X-Refresh-Token': refreshToken,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(payload)
         });
 
+        if (response.status === 401) {
+          localStorage.clear();
+          alert('Tu sesión ha expirado');
+          navigate('/studentlogin');
+          return;
+        }
+
         if (response.ok) {
           const data = await response.json();
           console.log('✅ Examen enviado:', data);
+          
+          // Limpiar respuestas guardadas
+          localStorage.removeItem('respuestasExamen');
+          
           alert('¡Examen enviado exitosamente!');
           setExamFinished(true);
           
-          // Redirigir a resultados o home
+          // Redirigir a resultados
           navigate('/resultados-estudiante');
         } else {
           alert('Error al enviar el examen');
@@ -150,11 +194,12 @@ setPreguntas(preguntasArray);
     }
   }
 
-  // Pantallas de loading/error
+  // ===== PANTALLAS DE ESTADO =====
+
   if (loading && !examData) {
     return (
       <div style={{ textAlign: 'center', marginTop: '50px' }}>
-        <h2>Cargando examen...</h2>
+        <h2>⏳ Cargando examen...</h2>
       </div>
     );
   }
@@ -162,9 +207,9 @@ setPreguntas(preguntasArray);
   if (error) {
     return (
       <div style={{ textAlign: 'center', marginTop: '50px' }}>
-        <h2>Error</h2>
+        <h2>❌ Error</h2>
         <p>{error}</p>
-        <button onClick={() => navigate('/student-home')}>Volver</button>
+        <button onClick={() => navigate('/studentlogin')}>Volver</button>
       </div>
     );
   }
@@ -172,8 +217,8 @@ setPreguntas(preguntasArray);
   if (preguntas.length === 0) {
     return (
       <div style={{ textAlign: 'center', marginTop: '50px' }}>
-        <h2>No hay preguntas disponibles</h2>
-        <button onClick={() => navigate('/student-home')}>Volver</button>
+        <h2>⚠️ No hay preguntas disponibles</h2>
+        <button onClick={() => navigate('/studentlogin')}>Volver</button>
       </div>
     );
   }
@@ -188,117 +233,95 @@ setPreguntas(preguntasArray);
     );
   }
 
-  // Pregunta actual
-  const preguntaActual = preguntas[currentQuestionIndex];
-  const respuestaActual = respuestas[currentQuestionIndex] || "";
-  async function handleSaveExam(e) {
-    
-    // Validaciones
-    if (!projectName.trim()) {
-      alert('Por favor ingresa el nombre del examen');
-      return;
-    }
-    if (!dbAsociada ) {
-      alert('Por favor selecciona un archivo .sql');
-      return;
-    }
+  // ===== RENDER PRINCIPAL =====
 
-    if (list.length === 0) {
-      alert('Por favor agrega al menos una pregunta');
-      return;
-    }
+  
+  const preguntasRespondidas = Object.values(respuestas).filter(r => r.trim() !== "").length;
 
-    setLoading(true);
-    setError(null);
+  return (
+     <div className="examen-container">
 
-    try {
-      
-      const user = JSON.parse(localStorage.getItem('user'));
-      const token = localStorage.getItem('token');
-      const refreshToken = localStorage.getItem('refreshToken');
-      const formData = new FormData();
-      if (!token) {
-      console.error('❌ No hay token - redirigiendo al login');
-      navigate('/professorlogin'); // Cambia '/login' por tu ruta de login
-      return;
-    }
-      if (dbAsociada) {
-        formData.append('db_asociada', dbAsociada);
-      }
-      
-      const preguntasFormateadas = list.map((pregunta, index) => ({
-        numero_pregunta: index + 1,
-        enunciado: pregunta.enunciado,
-        consulta_esperada: pregunta.consulta_esperada,
-        nombre_examen: projectName
-      }));
+            {/* Panel de preguntas */}
+            <div className="preguntas-panel">
+                <div className="preguntas-tabs">
+                    {enunciados.map((_, index) => (
+                        <button
+                            key={index}
+                            className={
+                                "pregunta-tab " + (preguntaActiva === index ? "active" : "")
+                            }
+                            onClick={() => setPreguntaActiva(index)}
+                        >
+                            Pregunta {index + 1}
+                        </button>
+                    ))}
+                </div>
 
-      
-      const payload = {
-        profe: user?.name, 
-        nombre_examen: projectName,
-        db_asociada: dbAsociada.name,
-        preguntas: preguntasFormateadas,
-        num_preguntas: list.length
-      };
+                <div className="pregunta-enunciado">
+                    {enunciados[preguntaActiva]}
+               </div>
+                       <div className="pregunta-tabla">
+    {tabla && tabla.length > 0 ? (
+        <table>
+            <thead>
+                <tr>
+                    {/* Obtener las llaves del primer objeto como headers */}
+                    {Object.keys(tabla[0]).map((columna, index) => (
+                        <th key={index}>{columna}</th>
+                    ))}
+                </tr>
+            </thead>
+            <tbody>
+                {/* Mapear cada fila (diccionario) */}
+                {tabla.map((fila, rowIndex) => (
+                    <tr key={rowIndex}>
+                        {/* Mapear cada valor de la fila */}
+                        {Object.values(fila).map((valor, colIndex) => (
+                            <td key={colIndex}>{valor}</td>
+                        ))}
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    ) : (
+        <p>No hay datos para mostrar</p>
+    )}
+</div>
+            
+               
+            </div>
 
-      
-      formData.append('exam_data', JSON.stringify(payload));
-      // Ennvio al backend HOLAAAAAAAAA
-      const response = await fetch('http://localhost:3000/api/make-exam', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-           'X-Refresh-Token': refreshToken
-          
-        },
-        body: formData
-      });
-
-      const data = await response.text();
-      if (response.status === 401) {
-      console.error('❌ Token expirado - limpiando sesión');
-    
-      alert('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
-      navigate('/professorlogin'); 
-      return;
-    }
-      if (response.ok) {
-        console.log('✅ Examen creado exitosamente:', data);
-        alert('¡Examen creado exitosamente!');
-        navigate('/homeprofessor');
-        
-        
-      } else {
-        setError(data.message || 'Error al crear el examen');
-        console.error('❌ Error del servidor:', data);
-      }
-
-    } catch (err) {
-      console.error('❌ Error de red:', err);
-      setError('Error de conexión con el servidor');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-return (
-    <>
-      <h1 className="main-title">New Exam</h1>
-      <hr />
-      <h2>Pregunta</h2>
-      <ul>
-      
-        <textarea
-    className="big-textarea"
-    value={descripcion}
-    onChange={(e) => setDescripcion(e.target.value)}
-    placeholder="Escribe aquí tu texto..."
-  />
-      </ul>
-      <button className="next">Siguiente pregunta</button>
-      <div className="index"> 1 de 5 preguntas</div>
-      
-    </>
-  );
+            {/* Panel SQL */}
+            <div className="sql-panel">
+                <textarea
+                    className="sql-input"
+                    placeholder="Escribe tu código SQL aquí"
+                    value={respuestaActual}
+                    onChange={(e) => handleRespuestaChange(e.target.value)}
+                />
+                <div className="resultado-sql">
+                  <h3>Resultado de la consulta:</h3>
+                       <pre style={{ 
+                           background: "#1e1e1e", 
+                           color: "white", 
+                            padding: "10px", 
+                            borderRadius: "8px",
+                            maxHeight: "200px",
+                            overflow: "auto" 
+                            }}>
+                      {resultadoConsulta}
+                  </pre>
+                </div>
+            
+                <div className="buttons">
+                    <button className="btn-primary" onClick={handleEnviarExamen}>
+                        Enviar Examen
+                    </button>
+                    <button className="btn-secondary" onClick={handleSubmitSQL}>
+                        Probar Consulta
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 }

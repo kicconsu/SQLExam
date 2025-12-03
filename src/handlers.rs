@@ -19,12 +19,13 @@ use serde_json::{Value, json}; // Para manejar JSON arbitrario
 use tracing::{info, error};
 
 use crate::aux_fns::*; // constructores de responses, constructores de peticiones...
-use crate::models::{AppState, ExamData, ExamMakerResponse, StudentQuery}; // tipado fuerte para los examenes para facilitar validaciones
+use crate::models::{AppState, ExamData, ExamMakerResponse, PreguntaRow, RoomKeyRow, StudentQuery}; // tipado fuerte para los examenes para facilitar validaciones
 
 //la mayoria de los handlers se parecen, ya q solo pasan la peticion tal cual a ROBLE.
 //make-exam es muy distinto al necesitar mandar varias peticiones a ROBLE y ademas hablar con posgres.
 
 //Contraseña de test2: aa22A-----
+//Contraseña de test3: -----222AAb
 //POST api/login: tratar de logear usuario en ROBLE
 pub async fn log_user(Json(payload):Json<Value>) -> impl IntoResponse {
     info!("\nPOST SQLExam/login detectado, credenciales:\n{:?}", &payload);
@@ -42,7 +43,8 @@ pub async fn log_user(Json(payload):Json<Value>) -> impl IntoResponse {
 }
 
 // los campos del Body tienen q ser los mismos q salen en la documentacion de ROBLE.
-// POST api/register --- por AHORA usa signup-direct (TODO: cambiar pls)
+// por AHORA el metodo usa la ruta de ROBLE /signup-direct, pero en contextos de produccion se tiene que cambiar a /signup
+// POST api/register
 pub async fn reg_user(Json(payload):Json<Value>) -> impl IntoResponse {
     info!("\nPOST SQLExam/register detectado, credenciales:\n{:?}", &payload);
 
@@ -77,6 +79,7 @@ pub async fn gather_exams(Query(payload):Query<Vec<(String, String)>>, heads:Hea
 
     send_res
 }
+
 
 /*
     un examen es: {profe, nombre_examen, db_asociada}. toca sacar las preguntas del payload y mandarlo a otra tabla.
@@ -233,25 +236,193 @@ pub async fn make_exam(State(app_state):State<AppState>, heads:HeaderMap, mut mu
     (StatusCode::MULTI_STATUS, Json(response_body))
 }
 
+//borrar un examen involucra quitarlo a él y sus preguntas de roble y quitar su base de datos de posgres con un par de consultas
+//espera el nombre del examen en el body:
+/*
+    {
+        "nombre_examen":"examen de JOIN"
+    }
+*/
+//TODO: deberias validar q ninguna base de datos tenga el mismo nombre de la base de datos maestra lol
+//DELETE api/delete-exam
+pub async fn delete_exam(State(app_state):State<AppState>, heads:HeaderMap, Json(payload): Json<Value>) -> impl IntoResponse {
+    info!("api/delete-exam detectado... tratando de remover el examen de la tabla Exams");
+
+    let nombre_examen = match payload.get("nombre_examen") {
+        Some(nombre) => nombre.to_string().replace("\"", ""),
+        None => {
+            error!("No se encontró el campo 'nombre_examen' en la petición. Hazlo bien pls!!!!!!!!");
+            return (StatusCode::BAD_REQUEST, Json(json!("El cuerpo de la petición no parece poseer el campo 'nombre_examen'")));
+        }
+    };
+
+    let body = json!({
+        "tableName":"Exams",
+        "idColumn":"nombre_examen",
+        "idValue":&nombre_examen
+    });
+
+    let acc_key = token_from_heads(heads);
+
+    let delete_response = delete_from("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/delete", body.clone(), acc_key.clone())
+        .await;
+    if !delete_response.status().is_success() {
+        let res_body = delete_response.text().await.unwrap();
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+            "ERROR":"Roble no aceptó la eliminación del examen.",
+            "msg_roble":res_body
+        })));
+    }
+
+    let delete_body = match delete_response.json::<Value>().await {
+        Ok(bod) => bod,
+        Err(e) => {
+            error!("La extraccion del cuerpo de la respuesta de roble salio mal: {}", e.to_string());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Algo salió mal en el backend. Revisa la consola!!")));
+        }
+    };
+
+    info!("respuesta de roble obtenida: {}", delete_body);
+    info!("examen borrado de roble, tratando de eliminar preguntas...");
+
+    let del_questions_response = delete_from("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/delete", body, acc_key)
+        .await;
+    if !del_questions_response.status().is_success() {
+        let res_body = del_questions_response.text().await.unwrap();
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+            "ERROR":"Roble no aceptó la eliminación de las preguntas.",
+            "msg_roble":res_body
+        })));
+    }
+
+    info!("tratando de ");
+
+    let db_name:String = match delete_body.get("db_asociada") {
+        Some(name) => name.to_string().replace(".sql", "").replace("\"", ""),
+        None => {
+            error!("No se encontró el campo 'db_asociada' en la respuesta de roble. lol");
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Error del backend. Revisa la consola.")));
+        }
+    };
+
+    info!("Tratando de eliminar db {} de Postgres...", db_name);
+
+    let admin_pool:PgPool;
+    {
+        let state_pools = app_state.db_pools.lock().unwrap();
+        admin_pool = match state_pools.get("admin"){
+            Some(p) => p.clone(),
+            None => {
+                error!("de alguna manera, la pool de admin no se encontró en el Estado. esto no debería de ser posible.");
+                return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Error interno del backend. revisa la consola!!!")));
+            }
+        }
+    }
+    /*
+    
+    SELECT pg_terminate_backend(pid)
+    FROM pg_stat_activity
+    WHERE datname = 'your_database_name';
+
+    DROP DATABASE your_database_name;
+
+    */
+    let disc_db = match sqlx::query(&format!("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{}'", db_name))
+                .execute(&admin_pool)
+                .await {
+                    Ok(result) => result,
+                    Err(e) => {
+                        error!("Algo salió mal desconectando los usuarios de Postgres:\n{}\n", e.to_string());
+                        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Error interno del backend. revisa la consola!")));
+                    }
+                };
+    info!("Db desconectada!, respuesta de Postgres: {:?}", disc_db);
+    let del_db = match sqlx::query(&format!("DROP DATABASE {}", db_name))
+                .execute(&admin_pool)
+                .await {
+                    Ok(result) => result,
+                    Err(e) => {
+                        error!("Algo salió mal borrando la base de datos: \n{}\n", e.to_string());
+                        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Error interno del backend. revisa la consola!")));
+                    }
+                };
+    //con esto se supone que la db fué eliminada.
+    info!("Db eliminada!, respuesta de Postgres: {:?}", del_db);
+
+    return (StatusCode::OK, Json(json!("Examen eliminado!")));
+} 
+
 //espera el código de acceso como un parametro
-//regresa el nombre de la base de datos sobre la cual se harán las consultas
+//regresa el nombre de la base de datos sobre la cual se harán las consultas y la info del examen {numPreg: , enunciados: [...]}
 //GET api/connect-room
 pub async fn connect_room(Query(payload):Query<Vec<(String, String)>>, heads:HeaderMap) -> impl IntoResponse {
+    info!("GET api/connect-room detectado");
+
     let mut params:Vec<(String, String)> = [("tableName".to_string(), "RoomKeys".to_string())].to_vec();
     params.append(&mut payload.clone());
-
     let acc_key:String = token_from_heads(heads);
 
-    info!("\nGET SQLExam/exams detectado,\nparametros: {:?}\naccess_token: {:?}", &params, &acc_key);
+    info!("parametros para buscar en RoomKey: \n{:?}\naccess_token: {:?}", params, acc_key);
+
+    let response =
+        get_queried("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/read", params, acc_key.clone())
+        .await;
+    
+    if !response.status().is_success() {
+        error!("Error en la busqueda de roble... respuesta devuelta al front.");
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(response.json().await.unwrap()));
+    }
+
+    info!("respuesta de roble... {:?}", &response);
+
+    let rk_body = match response.json::<Vec<RoomKeyRow>>().await {
+        Ok(bod) => {
+            bod
+        },
+        Err(er) => {
+            error!("No se pudo des-serializar la respuesta roble como vector de roomkeyrow. lo definiste mal papu :v\n{}", er.to_string());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("lol revisa la consola")));
+        }
+    };
+
+    let params:Vec<(String, String)> = [("tableName".to_string(), "Preguntas".to_string()),
+                                        ("nombre_examen".to_string(), rk_body[0].nombre_examen.clone())].to_vec();
+
+    info!("roomkey extraido correctamente, parametros para Preguntas:\n{:?}", &params);
 
     let response =
         get_queried("https://roble-api.openlab.uninorte.edu.co/database/sqlexam_b05c8db1d5/read", params, acc_key)
         .await;
-    let send_res = build_ax_response(response).await;
 
-    info!("STATUS devuelto: {:?}", &send_res.status());
+    if !response.status().is_success() {
+        error!("Error en la busqueda de roble... respuesta devuelta al front.");
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(response.json().await.unwrap()));
+    }
 
-    send_res
+    info!("respuesta de roble... {:?}", &response);    
+
+    let preguntas_body = match response.json::<Vec<PreguntaRow>>().await {
+        Ok(bod) => bod,
+        Err(er) => {
+            error!("No se pudo des-serializar la respuesta roble como vector de preguntas. lo definiste mal papu :v\n{}", er.to_string());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("lol revisa la consola")));
+        }
+    };
+
+    info!("preguntas extraidas exitosamente, mandando respuesta!");
+
+    let num_preg = preguntas_body.len();
+    let vec_nunciados:Vec<String> = preguntas_body.iter().map(|preg| {
+        preg.enunciado.clone()
+    }).collect();
+
+    return (StatusCode::OK, Json(json!({
+        "nombreDb": rk_body[0].nombre_db,
+        "infoExamen": {
+            "numPreg":num_preg,
+            "enunciados": vec_nunciados
+        }
+    })));
 }
 
 
@@ -332,23 +503,21 @@ pub async fn query_db(State(app_state):State<AppState>, _heads:HeaderMap, Json(p
 //POST api/open-room
 pub async fn open_room(State(app_state):State<AppState>, heads:HeaderMap, Json(payload): Json<Value>) -> impl IntoResponse {
     info!("POST api/open-room detectado");
-    let mut ex_name = match payload.get("nombre_examen") {
-        Some(name) => name.to_string(),
+    let ex_name = match payload.get("nombre_examen") {
+        Some(name) => name.to_string().replace("\"", ""),
         None => {
             error!("nombre_examen no encontrado en el cuerpo de la solicitud.");
             return (StatusCode::BAD_REQUEST, Json(json!("Trató de abrir un room, pero en la solicitud no se encontró el nombre del examen.\nAsegurese de que el campo sea 'nombre_examen', no 'nombreExamen'!")))
         }
     };
-    ex_name = ex_name.replace("\"", "");
 
-    let mut db_name = match payload.get("nombre_db") {
-        Some(name) => name.to_string(),
+    let db_name = match payload.get("nombre_db") {
+        Some(name) => name.to_string().replace("\"", ""),
         None => {
             error!("nombre_db no encontrado en el cuerpo de la solicitud.");
             return (StatusCode::BAD_REQUEST, Json(json!("Trató de abrir un room, pero en la solicitud no se encontró el nombre de la db.\nAsegurese de que el campo sea 'nombre_db', no 'nombreDb'!")))
         }
     };
-    db_name = db_name.replace("\"", "");
 
     let acc_key = token_from_heads(heads);
 
@@ -423,15 +592,16 @@ pub async fn open_room(State(app_state):State<AppState>, heads:HeaderMap, Json(p
 //POST api/close-room
 pub async fn close_room(State(app_state):State<AppState>, heads:HeaderMap, Json(payload):Json<Value>) -> impl IntoResponse {
     info!("POST api/close-room detectado");
-
-    let mut examen = match payload.get("nombre_examen") {
-        Some(nombre) => nombre.to_string(),
+    // GET a roble para sacar el nombre de la db, se accede al State con ese nombre, y luego DELETE a roble con el examen.
+    // tecnicamente hay una consulta demás pero si el DELETE va de primero entonces si hay un fallo en postgres (que es probable) o en el estado
+    // entonces se borra en Roble y queda el Pool abierto
+    let examen = match payload.get("nombre_examen") {
+        Some(nombre) => nombre.to_string().replace("\"", ""),
         None => {
             error!("Solicitud mala. No contiene 'nombre_examen' en el cuerpo.");
             return (StatusCode::BAD_REQUEST, Json(json!("Solicitud mala. No contiene 'nombre_examen' en el cuerpo.")));
         }
     };
-    examen = examen.replace("\"", "");
 
     info!("nombre examen conseguido, tratando de conseguir nombre_db...");
 
@@ -453,14 +623,13 @@ pub async fn close_room(State(app_state):State<AppState>, heads:HeaderMap, Json(
     };
 
     //como es un arreglo toca usar el primer elemento y tirar el get im pretty sure
-    let mut db = match search_body[0].get("nombre_db") {
-        Some(name) => name.to_string(),
+    let db = match search_body[0].get("nombre_db") {
+        Some(name) => name.to_string().replace("\"", ""),
         None => {
             error!("nombre_db no estaba presente en la respuesta de roble");
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Problemas en el backend. Mira la consola...")));
         }
     };
-    db = db.replace("\"", "");
 
     info!("tratando de remover db: {} del Estado.\nEstado: {:?}", &db, &app_state);
 
@@ -487,7 +656,7 @@ pub async fn close_room(State(app_state):State<AppState>, heads:HeaderMap, Json(
     }*/
     info!("Pool removida del Estado exitosamente, tratando de remover registro en Roble...");
 
-    //ya luego se tira el DELETE a roble para borrar los cuartos con esa db. hay un ligero problema y es que significa que
+    //se tira el DELETE a roble para borrar el cuarto de ese examen. hay un ligero problema y es que significa que
     //varios examenes NO pueden usar la misma db. TODO: estoy casi seguro de que no tiene por qué ser asi. si da el tiempo, figure something out
     let body = json!({
         "tableName":"RoomKeys",

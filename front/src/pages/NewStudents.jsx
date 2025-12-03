@@ -24,11 +24,12 @@ export default function NewStudents() {
 
     const jsonData = {
       email: formData.email,
+      name: formData.name,
       password: formData.password
     };
 
     try {
-      const response = await fetch("http://localhost:3000/api/registert", {
+      const response = await fetch("http://localhost:3000/api/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -67,7 +68,7 @@ export default function NewStudents() {
         setError(data.message || "Error en el login");
         console.error("Error del servidor:", data);
         alert('Error al crear el estudiante');
-        navigate('/homeprofessor'); ///PROVISIONAL BORRAR DESPUJES
+        
       }
       
     } catch (err) {
@@ -102,13 +103,20 @@ export default function NewStudents() {
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           disabled={loading}
         />
+        <input
+          type="text"
+          placeholder="Inserte el nombre del estudiante"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          disabled={loading}
+        />
 
         <input
           className="newstudent-input"
           type="password"
           placeholder="Inserte el código del estudiante"
-          value={formData.codigo}
-          onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
           disabled={loading}
         />
 

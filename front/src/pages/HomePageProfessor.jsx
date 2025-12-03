@@ -22,9 +22,9 @@ async function cargarExamenes() {
   try {
     let token = localStorage.getItem('token');
     const refreshToken = localStorage.getItem('refreshToken');
-
+    const profe = JSON.parse(localStorage.getItem('user')).name;
     // Primera petición
-    let response = await fetch('http://localhost:3000/api/exams', {
+    let response = await fetch(`http://localhost:3000/api/exams?profe=${profe}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -74,7 +74,7 @@ async function cargarExamenes() {
 
         // Reintentar la petición original con el nuevo token
         token = data.accessToken;
-        response = await fetch('http://localhost:3000/api/exams', {
+        response = await fetch(`http://localhost:3000/api/exams?profe=${profe}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -127,7 +127,7 @@ async function cargarExamenes() {
           'X-Refresh-Token': refreshToken ,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ projectName })
+        body: JSON.stringify({ "nombre_examen": projectName })
       });
 
       if (response.ok) {
@@ -201,9 +201,9 @@ async function cargarExamenes() {
           ))}
       </div>
       )}
-      <div className='landing-footer' style={{ marginTop: 30 }}>
-        <GetBack />
-      </div>
+      <button onClick ={() => navigate('/')}>
+        Cerrar sesión
+      </button>
     </div>
   )
 }

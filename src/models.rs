@@ -33,6 +33,29 @@ pub struct StudentQuery {
     pub query: String
 }
 
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)]
+
+pub struct RoomKeyRow {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub nombre_db: String,
+    pub llave: String,
+    pub nombre_examen: String
+}
+
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)]
+
+pub struct PreguntaRow {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub numero_pregunta: i64,
+    pub enunciado: String,
+    pub consulta_esperada: String,
+    pub nombre_examen: String
+}
+
 //Con este modelo se guarda el estado de la aplicacion
 //Por ahora, el estado solo involucra un diccionario de la forma {"nombre_db": Pool}
 #[derive(Default, Clone, Debug)]
