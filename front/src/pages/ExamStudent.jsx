@@ -301,16 +301,23 @@ export default function ExamStudent() {
                 />
                 <div className="resultado-sql">
                   <h3>Resultado de la consulta:</h3>
-                       <pre style={{ 
-                           background: "#1e1e1e", 
-                           color: "white", 
-                            padding: "10px", 
-                            borderRadius: "8px",
-                            maxHeight: "200px",
-                            overflow: "auto" 
-                            }}>
-                      {resultadoConsulta}
+                   <pre
+                    style={{
+                      background: "#1e1e1e",
+                      color: "white",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      maxHeight: "200px",
+                      overflow: "auto",
+                      maxWidth: "100%",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    {resultadoConsulta}
                   </pre>
+                  
                 </div>
             
                 <div className="buttons">

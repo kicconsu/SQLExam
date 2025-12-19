@@ -26,6 +26,7 @@ use crate::models::{AppState, ExamData, ExamMakerResponse, PreguntaRow, RoomKeyR
 
 //Contraseña de test2: aa22A-----
 //Contraseña de test3: -----222AAb
+//Contrasseña de est2: aa---aaAA22
 //POST api/login: tratar de logear usuario en ROBLE
 pub async fn log_user(Json(payload):Json<Value>) -> impl IntoResponse {
     info!("\nPOST SQLExam/login detectado, credenciales:\n{:?}", &payload);

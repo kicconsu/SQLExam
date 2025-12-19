@@ -31,7 +31,6 @@ export default function App() {
       </div>
     </div>
     <div className='landing-footer'>
-      <GetBack />
     </div>
     </div>
   )
